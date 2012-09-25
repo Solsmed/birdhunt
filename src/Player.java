@@ -34,6 +34,7 @@ public class Player {
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
          */
+    	
 
         //this line doesn't shoot any bird
         return Action.cDontShoot;
