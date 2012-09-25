@@ -2,6 +2,8 @@ import java.util.Random;
 import java.util.Date;
 import java.util.Vector;
 
+import markov.*;
+
 public class Player {
 	
     ///constructor
@@ -34,8 +36,43 @@ public class Player {
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
          */
+    	Model lambda = HMMFunction.getInitModel(4, 3);
+    	/*	 k	a	s
+    	 * M 
+    	 * Q 
+    	 * P 
+    	 * F 
+    	 */
+    	lambda.B = new double[][] {{0.93, 0.05, 0.02},
+    							   {0.70, 0.05, 0.25},
+    							   {0.20, 0.40, 0.40},
+    							   {0.19, 0.80, 0.01}};
     	
+    	int maxIters = 2000;
+    	int iters = 0;
+    	double oldLogProb = Double.NEGATIVE_INFINITY;
+    	double logProb = 0;
+    	
+    	int[] O = new int[500];
+    	int T = O.length;
+    	double[] c = new double[T];
+    	
+    	
+    	do {
+	    	lambda = HMMFunction.refineModel(lambda, O, c);
+	    	
+	    	logProb = 0;
+	    	for(int t = 0; t < T; t++) {
+	    		logProb += Math.log(c[t]);
+	    	}
+	    	logProb = -logProb;
+	    	
+	    	oldLogProb = logProb;
+    		iters++;
+    	} while(iters < maxIters && logProb > oldLogProb);
 
+    	
+    	
         //this line doesn't shoot any bird
         return Action.cDontShoot;
 

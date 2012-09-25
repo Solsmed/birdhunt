@@ -1,12 +1,12 @@
 package markov;
 
 public class Model {
-	protected double[][] A;
-	protected double[][] B;
-	protected double[] pi;
+	public double[][] A;
+	public double[][] B;
+	public double[] pi;
 	
-	protected int N;
-	protected int M;
+	public int N;
+	public int M;
 	
 	public Model(Model l) {
 		A = new double[l.N][l.N];
@@ -35,22 +35,25 @@ public class Model {
 		this.M = B[0].length;
 	}
 	
+	/*
 	public int M() { return M; }
 	public int N() { return N; }
 	
 	public double A(int i, int j) {
 		return A[i][j];
 	}
-	
+	*/
 	/*
 	public double[][] A() {
 		return A;
 	}
 	*/
 	
+	/*
 	public double B(int j, int k) {
 		return B[j][k];
 	}
+	*/
 	
 	/*
 	public double[][] B() {
@@ -58,9 +61,11 @@ public class Model {
 	}
 	*/
 	
+	/*
 	public double Pi(int i) {
 		return pi[i];
 	}
+	*/
 	
 	/*
 	public double[] Pi() {
