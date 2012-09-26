@@ -7,12 +7,15 @@ public class HMMFunction {
 	public static Model getInitModel(int N, int M) {
 		Model lambda = new Model(N, M);
 		
-		double Namp = 0.1*(1/N);
-		double Mamp = 0.1*(1/M);
+		double Namp = 0.1*(1.0/N);
+		double Mamp = 0.1*(1.0/M);
 		
-		Arrays.fill(lambda.A, 1/N);
-		Arrays.fill(lambda.B, 1/M);
-		Arrays.fill(lambda.pi, 1/N);
+		for(int i = 0; i < N; i++) {
+			Arrays.fill(lambda.A[i], 1.0/N);
+			Arrays.fill(lambda.B[i], 1.0/M);
+		}
+		
+		Arrays.fill(lambda.pi, 1.0/N);
 		
 		double[] piNoise = getNoiseVector(N, Namp);
 		vectorAdd(lambda.pi, piNoise);
@@ -101,7 +104,7 @@ public class HMMFunction {
 				newLambda.B[i][j] = numer / denom;
 			}
 		}
-		
+
 		return newLambda;
 	}
 	
@@ -115,7 +118,40 @@ public class HMMFunction {
 		
 		alphaPass(lambda, O, alpha, c);
 		betaPass(lambda, O, beta, c);
+		
+		
+		System.out.println("alpha");
+		for(int t = 0; t < T; t++) {
+			for(int i = 0; i < lambda.N; i++) {
+				System.out.print(String.format("%.2f ", alpha[t][i]));
+			}
+			System.out.println();
+		}
+		
+		System.out.println("beta");
+		for(int t = 0; t < T; t++) {
+			for(int i = 0; i < lambda.N; i++) {
+				System.out.print(String.format("%.2f ", beta[t][i]));
+			}
+			System.out.println();
+		}
+		
+		System.out.println("c");
+		for(int t = 0; t < T; t++) {
+			System.out.println(String.format("%.2f ", c[t]));
+		}
+		
+		
 		diGamma(lambda, O, alpha, beta, gamma, diGamma);
+		
+		int a;
+		for(int t = 0; t < T; t++) {
+			for(int i = 0; i < lambda.N; i++) {
+				if(Double.isNaN(gamma[t][i])) {
+					a = 1;
+				}
+			}
+		}
 	}
 	
 	public static void alphaPass(Model lambda, int[] O, double[][] alpha, double[] c) {	
@@ -157,7 +193,7 @@ public class HMMFunction {
 		}
 		
 		// beta pass
-		for(int t = T - 2; t <= 0; t--) {
+		for(int t = T - 2; t >= 0; t--) {
 			for(int i = 0; i < lambda.N; i++) {
 				beta[t][i] = 0;
 				for(int j = 0; j < lambda.N; j++) {

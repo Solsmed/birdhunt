@@ -35,41 +35,46 @@ public class Model {
 		this.M = B[0].length;
 	}
 	
-	/*
-	public int M() { return M; }
-	public int N() { return N; }
-	
-	public double A(int i, int j) {
-		return A[i][j];
+	public String toString() {
+		StringBuffer output = new StringBuffer();
+		
+		output.append("Model:\n");
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < 1 + N + M; j++) {
+				if(j == 0) {
+					if(i == 0)
+						output.append("¹ = [");
+					else
+						output.append("    [");
+				}
+				
+				if(j == 1) {
+					output.deleteCharAt(output.length()-1);
+					if(i == 0)
+						output.append("]  A = [");
+					else
+						output.append("]      [");
+				}
+				
+				if(j == N + 1) {
+					output.deleteCharAt(output.length()-1);
+					if(i == 0)
+						output.append("]  B = [");
+					else
+						output.append("]      [");
+				}
+				
+				if (j == 0)
+					output.append(String.format("%.2f ", pi[i]));
+				else if (j < N + 1)
+					output.append(String.format("%.2f ", A[i][j-1]));
+				else
+					output.append(String.format("%.2f ", B[i][j-N-1]));
+			}
+			output.deleteCharAt(output.length()-1);
+			output.append("]\n");
+		}
+		
+		return output.toString();
 	}
-	*/
-	/*
-	public double[][] A() {
-		return A;
-	}
-	*/
-	
-	/*
-	public double B(int j, int k) {
-		return B[j][k];
-	}
-	*/
-	
-	/*
-	public double[][] B() {
-		return B;
-	}
-	*/
-	
-	/*
-	public double Pi(int i) {
-		return pi[i];
-	}
-	*/
-	
-	/*
-	public double[] Pi() {
-		return pi;
-	}
-	*/
 }

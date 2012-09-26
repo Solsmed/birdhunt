@@ -7,6 +7,7 @@ import markov.*;
 public class Player {
 	
     ///constructor
+    private static int turnKeeper = 0;
     
     ///There is no data in the beginning, so not much should be done here.
     Player()
@@ -32,34 +33,46 @@ public class Player {
     ///prefer to pass
     Action Shoot(State pState,Deadline pDue)
     {
+    	log2(turnKeeper + ": Shoot? Where!?");
         /*
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
          */
     	Model lambda = HMMFunction.getInitModel(4, 3);
-    	/*	 k	a	s
+    	/*	 a	k	s
     	 * M 
     	 * Q 
     	 * P 
     	 * F 
     	 */
-    	lambda.B = new double[][] {{0.93, 0.05, 0.02},
-    							   {0.70, 0.05, 0.25},
-    							   {0.20, 0.40, 0.40},
-    							   {0.19, 0.80, 0.01}};
     	
-    	int maxIters = 2000;
+    	lambda.B = new double[][] {{0.05, 0.93, 0.02},
+    							   {0.05, 0.70, 0.25},
+    							   {0.40, 0.20, 0.40},
+    							   {0.80, 0.19, 0.01}};
+    	
+    	int maxIters = 1;
     	int iters = 0;
     	double oldLogProb = Double.NEGATIVE_INFINITY;
     	double logProb = 0;
     	
-    	int[] O = new int[500];
+    	int[] O = new int[pState.GetDuck(0).GetSeqLength()];
+    	
+    	System.out.println("Observations:");
+    	for(int t = 0; t < O.length; t++) {
+    		O[t] = pState.GetDuck(0).mSeq.get(t).GetHAction();
+    		System.out.print(O[t] + " ");
+    	}
+    	System.out.println();
+    	
     	int T = O.length;
     	double[] c = new double[T];
     	
-    	
+    	long start, stop;
+    	long lastIterTime = 1000;
     	do {
-	    	lambda = HMMFunction.refineModel(lambda, O, c);
+    		start = System.currentTimeMillis();
+	    	lambda = HMMFunction.refineModel(lambda, O, c);	    	
 	    	
 	    	logProb = 0;
 	    	for(int t = 0; t < T; t++) {
@@ -69,10 +82,14 @@ public class Player {
 	    	
 	    	oldLogProb = logProb;
     		iters++;
-    	} while(iters < maxIters && logProb > oldLogProb);
+    		stop = System.currentTimeMillis();
+    		lastIterTime = stop - start;
+    	} while(iters < maxIters && logProb > oldLogProb && pDue.TimeUntil() > 3*lastIterTime);
 
+    	log(lambda);
     	
     	
+    	turnKeeper++;
         //this line doesn't shoot any bird
         return Action.cDontShoot;
 
@@ -80,6 +97,15 @@ public class Player {
         //return new Action(0,Action.ACTION_STOP,Action.ACTION_STOP,Action.BIRD_STOPPED);
     }
 
+    private static void log(Object o) {
+		System.out.println(o);
+    }
+    
+    private static void log2(Object o) {
+    	/*if(turnKeeper % 10 == 0)*/
+    		System.out.println(o);
+    }
+    
     ///guess the species!
 
     ///This function will be called at the end of the game, to give you
@@ -92,6 +118,8 @@ public class Player {
     ///\param pDue time before which we must have returned
     void Guess(Duck[] pDucks,Deadline pDue)
     {
+    	System.out.println("No idea, man...");
+    	
         /*
          * Here you should write your clever algorithms to guess the species of each alive bird.
          * This skeleton guesses that all of them are white... they were the most likely after all!
