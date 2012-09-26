@@ -34,6 +34,7 @@ public class Player {
     Action Shoot(State pState,Deadline pDue)
     {
     	log2(turnKeeper + ": Shoot? Where!?");
+
         /*
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
@@ -46,10 +47,10 @@ public class Player {
     	 * F 
     	 */
     	
-    	lambda.B = new double[][] {{0.05, 0.93, 0.02},
-    							   {0.05, 0.70, 0.25},
-    							   {0.40, 0.20, 0.40},
-    							   {0.80, 0.19, 0.01}};
+    	lambda.B = new double[][] {{0.21, 0.62, 0.17},
+    							    {0.07, 0.14, 0.79},
+    							    {0.30, 0.02, 0.68},
+    							    {0.97, 0.03, 0.02}};
     	
     	int maxIters = 1;
     	int iters = 0;

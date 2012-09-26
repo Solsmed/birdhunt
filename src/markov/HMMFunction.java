@@ -119,29 +119,6 @@ public class HMMFunction {
 		alphaPass(lambda, O, alpha, c);
 		betaPass(lambda, O, beta, c);
 		
-		
-		System.out.println("alpha");
-		for(int t = 0; t < T; t++) {
-			for(int i = 0; i < lambda.N; i++) {
-				System.out.print(String.format("%.2f ", alpha[t][i]));
-			}
-			System.out.println();
-		}
-		
-		System.out.println("beta");
-		for(int t = 0; t < T; t++) {
-			for(int i = 0; i < lambda.N; i++) {
-				System.out.print(String.format("%.2f ", beta[t][i]));
-			}
-			System.out.println();
-		}
-		
-		System.out.println("c");
-		for(int t = 0; t < T; t++) {
-			System.out.println(String.format("%.2f ", c[t]));
-		}
-		
-		
 		diGamma(lambda, O, alpha, beta, gamma, diGamma);
 		
 		int a;
@@ -154,6 +131,7 @@ public class HMMFunction {
 		}
 	}
 	
+	// writes to alpha[][] and c[]
 	public static void alphaPass(Model lambda, int[] O, double[][] alpha, double[] c) {	
 		int T = O.length;
 		
@@ -181,9 +159,16 @@ public class HMMFunction {
 				alpha[t][i] *= lambda.B[i][O[t]];
 				c[t] += alpha[t][i];
 			}
+			
+			// scale alpha[t][i]
+			c[t] = 1 / c[t];
+			for (int i = 0; i < lambda.N; i++) {
+				alpha[t][i] *= c[t];
+			}
 		}
 	}
 	
+	// writes to beta[][]
 	public static void betaPass(Model lambda, int[] O, double[][] beta, double[] c) {
 		int T = O.length;
 		
@@ -227,5 +212,9 @@ public class HMMFunction {
 				}
 			}
 		}
+	}
+	
+	public static double matrixDistance() {
+		return 0;
 	}
 }
