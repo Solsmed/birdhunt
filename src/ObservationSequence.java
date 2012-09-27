@@ -82,7 +82,7 @@ public class ObservationSequence {
 		diGamma = new double[T][N][N];
 	}
 	
-	public int predictHaction() {
+	public int predictAction() {
 		double maxProb = Double.NEGATIVE_INFINITY;
 		int maxState = -1;
 		
@@ -90,6 +90,13 @@ public class ObservationSequence {
 			if(alpha[T-1][i] > maxProb) {
 				maxProb = alpha[T-1][i];
 				maxState = i;
+			}
+		}
+		
+		double[] nextStateProb = new double[N];
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < N; j++) {
+				
 			}
 		}
 		
@@ -116,5 +123,51 @@ public class ObservationSequence {
 		
 		return maxI;
 		*/
+	}
+	
+	public static String actionToString(Action a) {
+		StringBuffer s = new StringBuffer();
+		
+		s.append("(" + a.GetBirdNumber() + ") ");
+		
+		s.append("H:");
+		switch(a.GetHAction()) {
+		case Action.ACTION_KEEPSPEED:
+			s.append("k");
+			break;
+		case Action.ACTION_ACCELERATE:
+			s.append("a");
+			break;
+		case Action.ACTION_STOP:
+			s.append("s");
+			break;
+		}
+		
+		s.append(", V:");
+		switch(a.GetVAction()) {
+		case Action.ACTION_KEEPSPEED:
+			s.append("k");
+			break;
+		case Action.ACTION_ACCELERATE:
+			s.append("a");
+			break;
+		case Action.ACTION_STOP:
+			s.append("s");
+			break;
+		}
+		
+		s.append(", M:");
+		int move = a.GetMovement();
+		if((move & Action.MOVE_WEST) != 0)
+			s.append("west");
+		else if ((move & Action.MOVE_EAST) != 0)
+			s.append("east");
+		
+		if((move & Action.MOVE_UP) != 0)
+			s.append("/up");
+		else if ((move & Action.MOVE_DOWN) != 0)
+			s.append("/down");
+		
+		return s.toString();
 	}
 }

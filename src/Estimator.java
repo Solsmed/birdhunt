@@ -111,4 +111,59 @@ public class Estimator {
 	    		lambda.V.isOptimal = true;
     	}
 	}
+	
+	public static Action predictAction(Model2D lambda, ObservationSequence2D O) {
+		int bird = lambda.birdNumber;
+		int actionH = O.H.predictAction();
+		int actionV = O.V.predictAction();
+		int movement = 0;
+		
+		switch(actionH) {
+		case ObservationSequence.H_S:
+			actionH = Action.ACTION_STOP;
+			movement = movement | Action.BIRD_STOPPED;
+			break;
+		case ObservationSequence.H_A_E:
+			actionH = Action.ACTION_ACCELERATE;
+			movement = movement | Action.MOVE_EAST;
+			break;
+		case ObservationSequence.H_A_W:
+			actionH = Action.ACTION_ACCELERATE;
+			movement = movement | Action.MOVE_WEST;
+			break;
+		case ObservationSequence.H_K_E:
+			actionH = Action.ACTION_KEEPSPEED;
+			movement = movement | Action.MOVE_EAST;
+			break;
+		case ObservationSequence.H_K_W:
+			actionH = Action.ACTION_KEEPSPEED;
+			movement = movement | Action.MOVE_WEST;
+			break;
+		}
+		
+		switch(actionV) {
+		case ObservationSequence.V_S:
+			actionH = Action.ACTION_STOP;
+			movement = movement | Action.BIRD_STOPPED;
+			break;
+		case ObservationSequence.V_A_D:
+			actionH = Action.ACTION_ACCELERATE;
+			movement = movement | Action.MOVE_DOWN;
+			break;
+		case ObservationSequence.V_A_U:
+			actionH = Action.ACTION_ACCELERATE;
+			movement = movement | Action.MOVE_UP;
+			break;
+		case ObservationSequence.V_K_D:
+			actionH = Action.ACTION_KEEPSPEED;
+			movement = movement | Action.MOVE_DOWN;
+			break;
+		case ObservationSequence.V_K_U:
+			actionH = Action.ACTION_KEEPSPEED;
+			movement = movement | Action.MOVE_UP;
+			break;
+		}
+		
+		return new Action(bird, actionH, actionV, movement);
+	}
 }

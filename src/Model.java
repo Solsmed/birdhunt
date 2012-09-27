@@ -49,7 +49,6 @@ public class Model {
 	public String toString() {
 		StringBuffer output = new StringBuffer();
 		
-		output.append("Model:\n");
 		output.append("                     " + stateLabels[0] + "   " + stateLabels[1] + "   " + stateLabels[2] + "          Kw/u Ke/d Aw/u Ae/d  s   \n");
 		for(int i = 0; i < N; i++) {
 			for(int j = 0; j < 1 + N + M; j++) {

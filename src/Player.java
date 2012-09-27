@@ -1,8 +1,4 @@
-import java.util.Random;
-import java.util.Date;
-import java.util.Vector;
-
-import markov.*;
+import java.util.*;
 
 public class Player {
 	
@@ -12,10 +8,29 @@ public class Player {
     ///There is no data in the beginning, so not much should be done here.
     Player()
     {
+    	colour = new HashMap<String, Set<Model2D>>();
     }
 
     public static final int N = 3;
     public static final int M = 5;
+    
+    public static final String[] labels = new String[] {"Mi", "Qu", "Pa", "FD"};
+    
+    public static final double[][] BinitH = new double[][]
+    	//	  Kw     Ke    Aw    Ae     s
+    		{{0.50, 0.50, 0.00, 0.00, 0.00},  // M
+			 {0.20, 0.20, 0.10, 0.10, 0.50},  // Q
+			 {0.15, 0.15, 0.15, 0.15, 0.40},  // P
+			 {0.00, 0.00, 0.00, 0.00, 1.00}}; // F
+    
+    public static final double[][] BinitV = new double[][]
+    	 //   Ku     Kd    Au    Ad     s
+    		{{0.50, 0.50, 0.00, 0.00, 0.00},  // M
+			 {0.25, 0.25, 0.05, 0.05, 0.50},  // Q
+			 {0.15, 0.15, 0.15, 0.15, 0.40},  // P
+			 {0.00, 0.00, 0.00, 1.00, 0.00}}; // F  
+    
+    public Map<String, Set<Model2D>> colour;
     
     ///shoot!
 
@@ -41,22 +56,7 @@ public class Player {
         /*
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
-         */
-    	
-    									//	 Kw     Ke    Aw    Ae     s
-    	double[][] BinitH = new double[][] {{0.50, 0.50, 0.00, 0.00, 0.00},  // M
-    							    		{0.20, 0.20, 0.10, 0.10, 0.50},  // Q
-    							    		{0.15, 0.15, 0.15, 0.15, 0.40},  // P
-    							    		{0.00, 0.00, 0.00, 0.00, 1.00}}; // F
-    							   
-										//   Ku     Kd    Au    Ad     s
-    	double[][] BinitV = new double[][] {{0.50, 0.50, 0.00, 0.00, 0.00},  // M
-    										{0.25, 0.25, 0.05, 0.05, 0.50},  // Q
-    										{0.15, 0.15, 0.15, 0.15, 0.40},  // P
-    										{0.00, 0.00, 0.00, 1.00, 0.00}}; // F
-    	
-    	String[] labels = new String[] {"Mi", "Qu", "Pa", "FD"};
-    	
+         */  	
     	
     	Model2D trueModel[] = new Model2D[pState.GetNumDucks()];
     	ObservationSequence2D seq[] = new ObservationSequence2D[pState.GetNumDucks()];
@@ -64,8 +64,15 @@ public class Player {
     	for(int d = 0; d < pState.GetNumDucks(); d++) {
     		seq[d] = new ObservationSequence2D(pState.GetDuck(d).mSeq);
 			trueModel[d] = Estimator.getLabelledModel(labels, BinitH, BinitV, seq[d]);
+			seq[d].birdNumber = trueModel[d].birdNumber = d;
+			mapAdd(trueModel[d]);
 			System.out.println(trueModel[d]);
-		}  	    	
+		}
+    	
+    	System.out.print("A-Lab: ");
+		for(int i = 0; i < N; i++)
+			System.out.print(String.format("%.2f ", seq[0].H.alpha[100][i]));
+		System.out.println();
 
     	long lastIterTime = 0;
     	long start, stop;
@@ -92,39 +99,23 @@ public class Player {
     		lastIterTime = stop - start;
     	}
     	
+		System.out.print("Alpha: ");
+		for(int i = 0; i < N; i++)
+			System.out.print(String.format("%.2f ", seq[0].H.alpha[100][i]));
+		System.out.println();
 
-/*
-    	int Alen = 10;
-    	System.out.print("Last H-actions: ");
-    	for(int a = Alen; a > 0; a--) {
-    		System.out.print(seqH.sequence[seqH.T-a] + ", ");
-    	}
-    	System.out.println();
-    	System.out.print("Last V-actions: ");
-    	for(int a = Alen; a > 0; a--) {
-    		System.out.print(seqV.sequence[seqV.T-a] + ", ");
-    	}
-    	System.out.println();
-    	
-    	System.out.println("Next H-action?: " + seqH.predictHaction());
-    	System.out.println("Next V-action?: " + seqV.predictHaction());
-    	System.out.println();
-    	System.out.print("Loop time: " + lastIterTime + " (remaining: " + pDue.TimeUntil() + ") ");
-    	System.out.print("Iterations: " + iters + ", ");
-    	System.out.println();
-    	System.out.println("logProb: " + logProbH + " (old: " + oldLogProbH + ")");
-    	System.out.println("logProb: " + logProbV + " (old: " + oldLogProbV + ")");
-    	System.out.println();
-    	System.out.print("Horizontal " + lambdaH + "\n");
-    	System.out.print("Vertical " + lambdaV);
-    	*/
+    	System.out.println("Next H-action?: " + seq[0].H.predictAction());
+    	System.out.println("Next V-action?: " + seq[0].V.predictAction());
+ 
     	
     	turnKeeper++;
         //this line doesn't shoot any bird
-        return Action.cDontShoot;
+        //return Action.cDontShoot;
         
         //this line would predict that bird 0 is totally stopped and shoot at it
-        //return new Action(0,Action.ACTION_STOP,Action.ACTION_STOP,Action.BIRD_STOPPED);
+    	Action action = Estimator.predictAction(trueModel[0], seq[0]);
+    	System.out.println(ObservationSequence.actionToString(action));
+        return action;
     }
     
     ///guess the species!
@@ -159,5 +150,17 @@ public class Player {
     void Hit(int pDuck,int pSpecies)
     {
         System.out.println("HIT DUCK!!!");
+    }
+    
+    void mapAdd(Model2D m) {
+    	String key = m.getMapString();
+    	
+    	Set<Model2D> mSet = colour.get(key);
+    	if(mSet == null) {
+    		mSet = new HashSet<Model2D>();
+    		colour.put(key, mSet);
+    	}
+    	
+    	mSet.add(m);
     }
 }
