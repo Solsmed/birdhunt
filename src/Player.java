@@ -36,136 +36,64 @@ public class Player {
     ///prefer to pass
     Action Shoot(State pState,Deadline pDue)
     {
-    	log2(turnKeeper + ": Shoot? Where!?");
+    	System.out.println(turnKeeper + ": Shoot? Where!?");
 
         /*
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
          */
-    	Model lambdaH = HMMFunction.getInitModel(N, M);
-    	Model lambdaV = HMMFunction.getInitModel(N, M);
     	
-    	System.out.println(lambdaH);
-    	System.out.println(lambdaV);
-    	/*	 a	k	s
-    	 * M 
-    	 * Q 
-    	 * P 
-    	 * F 
-    	 */
-    	/*
-    	
-    							//	 Kw     Ke    Aw    Ae     s
-    	lambdaH.B = new double[][] {{0.50, 0.50, 0.00, 0.00, 0.00},  // M
-    							    {0.20, 0.20, 0.10, 0.10, 0.50},  // Q
-    							    {0.15, 0.15, 0.15, 0.15, 0.40},  // P
-    							    {0.00, 0.00, 0.00, 0.00, 1.00}}; // F
+    									//	 Kw     Ke    Aw    Ae     s
+    	double[][] BinitH = new double[][] {{0.50, 0.50, 0.00, 0.00, 0.00},  // M
+    							    		{0.20, 0.20, 0.10, 0.10, 0.50},  // Q
+    							    		{0.15, 0.15, 0.15, 0.15, 0.40},  // P
+    							    		{0.00, 0.00, 0.00, 0.00, 1.00}}; // F
     							   
-								//   Ku     Kd    Au    Ad     s
-    	lambdaV.B = new double[][] {{0.50, 0.50, 0.00, 0.00, 0.00},  // M
-    							    {0.25, 0.25, 0.05, 0.05, 0.50},  // Q
-    							    {0.15, 0.15, 0.15, 0.15, 0.40},  // P
-    							    {0.00, 0.00, 0.00, 1.00, 0.00}}; // F
-    	*/
-    	/*
+										//   Ku     Kd    Au    Ad     s
+    	double[][] BinitV = new double[][] {{0.50, 0.50, 0.00, 0.00, 0.00},  // M
+    										{0.25, 0.25, 0.05, 0.05, 0.50},  // Q
+    										{0.15, 0.15, 0.15, 0.15, 0.40},  // P
+    										{0.00, 0.00, 0.00, 1.00, 0.00}}; // F
     	
-		[0.41 0.40 0.19]
-		[0.12 0.08 0.80]
-		[0.42 0.01 0.57]
-		[0.98 0.01 0.01]
-		
-		[0.17 0.40 0.43]
-		[0.04 0.09 0.87]
-		[0.14 0.01 0.85]
-		[0.92 0.02 0.06]
- 
-    	 */
+    	String[] labels = new String[] {"Mi", "Qu", "Pa", "FD"};
     	
-    	int maxIters = 20000;
-    	int iters = 0;
     	
-    	/*
-    	Duck duck = pState.GetDuck(0);
+    	Model2D trueModel[] = new Model2D[pState.GetNumDucks()];
+    	ObservationSequence2D seq[] = new ObservationSequence2D[pState.GetNumDucks()];
+    	
+    	for(int d = 0; d < pState.GetNumDucks(); d++) {
+    		seq[d] = new ObservationSequence2D(pState.GetDuck(d).mSeq);
+			trueModel[d] = Estimator.getLabelledModel(labels, BinitH, BinitV, seq[d]);
+			System.out.println(trueModel[d]);
+		}  	    	
 
-    	int[][] O = new int[pState.GetNumDucks()][];
-    	
-    	for(int d = 0; d < O.length; d++) {
-    		int numActions = 2*pState.GetDuck(d).GetSeqLength();
-    		O[d] = new int[numActions];
-    		for(int a = 0; a < numActions; a++) {
-    			O[d][2*a] = pState.GetDuck(d).mSeq.get(a).GetHAction();
-    			O[d][2*a] = pState.GetDuck(d).mSeq.get(a).GetVAction();
-    		}
-    	}
-    	*/
-    	
-    	ObservationSequence seqH = new ObservationSequence(pState.GetDuck(0).mSeq, true);
-    	ObservationSequence seqV = new ObservationSequence(pState.GetDuck(0).mSeq, false);
-    	
-    	System.out.println("Actions: " + seqH.sequence.length);
-    	/*
-    	int[] O = new int[pState.GetDuck(0).mSeq.size()];
-    	for(int o = 0; o < O.length; o++) {
-    		O[o] = pState.GetDuck(0).mSeq.get(o).GetHAction();
-    	}
-    	
-    	int T = O.length;
-    	double[] c = new double[T];
-    	*/
-    	long start, stop;
     	long lastIterTime = 0;
-    	double oldLogProbH = Double.NEGATIVE_INFINITY;
-    	double oldLogProbV = Double.NEGATIVE_INFINITY;
-    	double logProbH = 0;
-    	double logProbV = 0;
-    	boolean iterateV = true;
-    	boolean iterateH = true;
+    	long start, stop;
+    	boolean refined[] = new boolean[pState.GetNumDucks()];
+    	int numUnrefinedDucks = pState.GetNumDucks();
     	
-    	while(true) {
+    	while (pDue.TimeUntil() > 1.15*lastIterTime) {
     		start = System.currentTimeMillis();
     		
-    		if(iterateH) {
-		    	lambdaH = HMMFunction.refineModel(lambdaH, seqH);	
-		    	
-		    	logProbH = 0;
-		    	for(int t = 0; t < seqH.T; t++) {
-		    		logProbH += Math.log(seqH.c[t]);
-		    	}
-		    	logProbH = -logProbH;
-		    	
-		    	if(logProbH > oldLogProbH)
-		    		oldLogProbH = logProbH;
-		    	else
-		    		iterateH = false;
+    		long deadlineTime = (pDue.TimeUntil() / 2) / numUnrefinedDucks;
+    		
+    		numUnrefinedDucks = 0;
+    		
+    		for(int d = 0; d < pState.GetNumDucks(); d++) {
+    			if(!refined[d]) {
+    				if(Estimator.refineModelLoop(trueModel[d], seq[d], deadlineTime))
+    					refined[d] = true;
+    				else
+    					numUnrefinedDucks++;
+    			}
     		}
-	    	
-	    	// Vertical iteration
-	    	if(iterateV) {
-		    	lambdaV = HMMFunction.refineModel(lambdaV, seqV);
-		    	
-		    	logProbV = 0;
-		    	for(int t = 0; t < seqV.T; t++) {
-		    		logProbV += Math.log(seqV.c[t]);
-		    	}
-		    	logProbV = -logProbV;
-		    	
-		    	if(logProbV > oldLogProbV)
-		    		oldLogProbV = logProbV;
-		    	else
-		    		iterateV = false;
-	    	}
-	    	
-	    	stop = System.currentTimeMillis();
-	    	lastIterTime = stop - start;
-	    		    	
-	    	iters++;
-	    	if(iterateV && iterateH &&
-	    	   pDue.TimeUntil() > (3*lastIterTime))
-	    		continue;
-	    	else
-	    		break;
+    		
+    		stop = System.currentTimeMillis();
+    		lastIterTime = stop - start;
     	}
+    	
 
+/*
     	int Alen = 10;
     	System.out.print("Last H-actions: ");
     	for(int a = Alen; a > 0; a--) {
@@ -189,7 +117,7 @@ public class Player {
     	System.out.println();
     	System.out.print("Horizontal " + lambdaH + "\n");
     	System.out.print("Vertical " + lambdaV);
-    	
+    	*/
     	
     	turnKeeper++;
         //this line doesn't shoot any bird
@@ -197,15 +125,6 @@ public class Player {
         
         //this line would predict that bird 0 is totally stopped and shoot at it
         //return new Action(0,Action.ACTION_STOP,Action.ACTION_STOP,Action.BIRD_STOPPED);
-    }
-
-    private static void log(Object o) {
-		System.out.println(o);
-    }
-    
-    private static void log2(Object o) {
-    	/*if(turnKeeper % 10 == 0)*/
-    		System.out.println(o);
     }
     
     ///guess the species!

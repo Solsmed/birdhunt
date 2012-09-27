@@ -4,6 +4,10 @@ public class Model {
 	public double[][] A;
 	public double[][] B;
 	public double[] pi;
+	public String[] stateLabels;
+	
+	public double logProb = Double.NEGATIVE_INFINITY;
+	public boolean isOptimal = false;
 	
 	public int N;
 	public int M;
@@ -12,6 +16,13 @@ public class Model {
 		A = new double[l.N][l.N];
 		B = new double[l.N][l.M];
 		pi = new double[l.N];
+		if(l.stateLabels != null) {
+			stateLabels = new String[l.stateLabels.length];
+			System.arraycopy(l.stateLabels, 0, stateLabels, 0, stateLabels.length);
+		}
+		
+		isOptimal = l.isOptimal;
+		logProb = l.logProb;
 		N = l.N;
 		M = l.M;
 		
@@ -39,14 +50,14 @@ public class Model {
 		StringBuffer output = new StringBuffer();
 		
 		output.append("Model:\n");
-		output.append("                                       Kw/u Ke/d Aw/u Ae/d  s   \n");
+		output.append("                     " + stateLabels[0] + "   " + stateLabels[1] + "   " + stateLabels[2] + "          Kw/u Ke/d Aw/u Ae/d  s   \n");
 		for(int i = 0; i < N; i++) {
 			for(int j = 0; j < 1 + N + M; j++) {
 				if(j == 0) {
 					if(i == 0)
-						output.append("¹ = [");
+						output.append(stateLabels[i] + ": ¹ = [");
 					else
-						output.append("    [");
+						output.append(stateLabels[i] + ":     [");
 				}
 				
 				if(j == 1) {
