@@ -17,8 +17,8 @@ public class Model {
 		
 		System.arraycopy(l.pi, 0, pi, 0, N);
 		for(int i = 0; i < N; i++) {
-			System.arraycopy(l.A, 0, A, 0, N);
-			System.arraycopy(l.B, 0, B, 0, M);
+			System.arraycopy(l.A[i], 0, A[i], 0, N);
+			System.arraycopy(l.B[i], 0, B[i], 0, M);
 		}
 	}
 	
@@ -39,6 +39,7 @@ public class Model {
 		StringBuffer output = new StringBuffer();
 		
 		output.append("Model:\n");
+		output.append("                                       Kw/u Ke/d Aw/u Ae/d  s   \n");
 		for(int i = 0; i < N; i++) {
 			for(int j = 0; j < 1 + N + M; j++) {
 				if(j == 0) {

@@ -14,6 +14,9 @@ public class Player {
     {
     }
 
+    public static final int N = 3;
+    public static final int M = 5;
+    
     ///shoot!
 
     ///This is the function where you should do all your work.
@@ -39,19 +42,31 @@ public class Player {
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
          */
-    	Model lambda = HMMFunction.getInitModel(4, 3);
+    	Model lambdaH = HMMFunction.getInitModel(N, M);
+    	Model lambdaV = HMMFunction.getInitModel(N, M);
+    	
+    	System.out.println(lambdaH);
+    	System.out.println(lambdaV);
     	/*	 a	k	s
     	 * M 
     	 * Q 
     	 * P 
     	 * F 
     	 */
-    	    	
-    	lambda.B = new double[][] {{0.14, 0.86, 0.00},
-    							   {0.00, 0.00, 1.00},
-    							   {0.58, 0.00, 0.42},
-    							   {1.00, 0.00, 0.00}};
+    	/*
     	
+    							//	 Kw     Ke    Aw    Ae     s
+    	lambdaH.B = new double[][] {{0.50, 0.50, 0.00, 0.00, 0.00},  // M
+    							    {0.20, 0.20, 0.10, 0.10, 0.50},  // Q
+    							    {0.15, 0.15, 0.15, 0.15, 0.40},  // P
+    							    {0.00, 0.00, 0.00, 0.00, 1.00}}; // F
+    							   
+								//   Ku     Kd    Au    Ad     s
+    	lambdaV.B = new double[][] {{0.50, 0.50, 0.00, 0.00, 0.00},  // M
+    							    {0.25, 0.25, 0.05, 0.05, 0.50},  // Q
+    							    {0.15, 0.15, 0.15, 0.15, 0.40},  // P
+    							    {0.00, 0.00, 0.00, 1.00, 0.00}}; // F
+    	*/
     	/*
     	
 		[0.41 0.40 0.19]
@@ -66,10 +81,8 @@ public class Player {
  
     	 */
     	
-    	int maxIters = 2000;
+    	int maxIters = 20000;
     	int iters = 0;
-    	double oldLogProb = Double.NEGATIVE_INFINITY;
-    	double logProb = 0;
     	
     	/*
     	Duck duck = pState.GetDuck(0);
@@ -86,7 +99,10 @@ public class Player {
     	}
     	*/
     	
-    	Observation seq = new Observation(pState.GetDuck(0).mSeq);
+    	ObservationSequence seqH = new ObservationSequence(pState.GetDuck(0).mSeq, true);
+    	ObservationSequence seqV = new ObservationSequence(pState.GetDuck(0).mSeq, false);
+    	
+    	System.out.println("Actions: " + seqH.sequence.length);
     	/*
     	int[] O = new int[pState.GetDuck(0).mSeq.size()];
     	for(int o = 0; o < O.length; o++) {
@@ -98,35 +114,81 @@ public class Player {
     	*/
     	long start, stop;
     	long lastIterTime = 0;
+    	double oldLogProbH = Double.NEGATIVE_INFINITY;
+    	double oldLogProbV = Double.NEGATIVE_INFINITY;
+    	double logProbH = 0;
+    	double logProbV = 0;
+    	boolean iterateV = true;
+    	boolean iterateH = true;
+    	
     	while(true) {
     		start = System.currentTimeMillis();
     		
-	    	lambda = HMMFunction.refineModel(lambda, seq);	    	
+    		if(iterateH) {
+		    	lambdaH = HMMFunction.refineModel(lambdaH, seqH);	
+		    	
+		    	logProbH = 0;
+		    	for(int t = 0; t < seqH.T; t++) {
+		    		logProbH += Math.log(seqH.c[t]);
+		    	}
+		    	logProbH = -logProbH;
+		    	
+		    	if(logProbH > oldLogProbH)
+		    		oldLogProbH = logProbH;
+		    	else
+		    		iterateH = false;
+    		}
 	    	
-	    	logProb = 0;
-	    	for(int t = 0; t < seq.T; t++) {
-	    		logProb += Math.log(seq.c[t]);
+	    	// Vertical iteration
+	    	if(iterateV) {
+		    	lambdaV = HMMFunction.refineModel(lambdaV, seqV);
+		    	
+		    	logProbV = 0;
+		    	for(int t = 0; t < seqV.T; t++) {
+		    		logProbV += Math.log(seqV.c[t]);
+		    	}
+		    	logProbV = -logProbV;
+		    	
+		    	if(logProbV > oldLogProbV)
+		    		oldLogProbV = logProbV;
+		    	else
+		    		iterateV = false;
 	    	}
-	    	logProb = -logProb;
 	    	
 	    	stop = System.currentTimeMillis();
 	    	lastIterTime = stop - start;
 	    		    	
 	    	iters++;
-	    	if(iters < maxIters && logProb > oldLogProb && pDue.TimeUntil() > (3*lastIterTime)) {
-	    		oldLogProb = logProb;
+	    	if(iterateV && iterateH &&
+	    	   pDue.TimeUntil() > (3*lastIterTime))
 	    		continue;
-	    	} else {
+	    	else
 	    		break;
-	    	}
     	}
 
-    	System.out.println("Last action: " + seq.Hsequence[seq.T-1]);
-    	System.out.println("Next action?: " + seq.predictHaction());
-    	log(lastIterTime + " x3 " + (3*lastIterTime) + " time: " + pDue.TimeUntil());
-    	log(iters);
-    	log(logProb + " " + oldLogProb);
-    	log(lambda);
+    	int Alen = 10;
+    	System.out.print("Last H-actions: ");
+    	for(int a = Alen; a > 0; a--) {
+    		System.out.print(seqH.sequence[seqH.T-a] + ", ");
+    	}
+    	System.out.println();
+    	System.out.print("Last V-actions: ");
+    	for(int a = Alen; a > 0; a--) {
+    		System.out.print(seqV.sequence[seqV.T-a] + ", ");
+    	}
+    	System.out.println();
+    	
+    	System.out.println("Next H-action?: " + seqH.predictHaction());
+    	System.out.println("Next V-action?: " + seqV.predictHaction());
+    	System.out.println();
+    	System.out.print("Loop time: " + lastIterTime + " (remaining: " + pDue.TimeUntil() + ") ");
+    	System.out.print("Iterations: " + iters + ", ");
+    	System.out.println();
+    	System.out.println("logProb: " + logProbH + " (old: " + oldLogProbH + ")");
+    	System.out.println("logProb: " + logProbV + " (old: " + oldLogProbV + ")");
+    	System.out.println();
+    	System.out.print("Horizontal " + lambdaH + "\n");
+    	System.out.print("Vertical " + lambdaV);
     	
     	
     	turnKeeper++;

@@ -2,6 +2,13 @@ import java.io.*;
 import java.net.*;
 import java.util.Date;
 
+/*
+
+dd2380.csc.kth.se 5020 STANDALONE numbirds=1 numspecies=1 noblackbird
+dd2380.csc.kth.se 5020 STANDALONE practicemode
+
+*/
+
 public class Client {
 
     public static void main(String[] pArgs) 

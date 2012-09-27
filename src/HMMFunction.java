@@ -7,8 +7,8 @@ public class HMMFunction {
 	public static Model getInitModel(int N, int M) {
 		Model lambda = new Model(N, M);
 		
-		double Namp = 0.1*(1.0/N);
-		double Mamp = 0.1*(1.0/M);
+		double Namp = 0.15*(1.0/N);
+		double Mamp = 0.15*(1.0/M);
 		
 		for(int i = 0; i < N; i++) {
 			Arrays.fill(lambda.A[i], 1.0/N);
@@ -39,7 +39,7 @@ public class HMMFunction {
 		for(int i = 0; i < N; i++) {
 			noiseVector[i] = random.nextDouble() - 0.5;
 			if(Math.abs(noiseVector[i]) > maxAmplitude)
-				maxAmplitude = noiseVector[i];
+				maxAmplitude = Math.abs(noiseVector[i]);
 		}
 		
 		double sum = 0;
@@ -62,7 +62,7 @@ public class HMMFunction {
 			a[i] += b[i];
 	}
 	
-	public static Model refineModel(Model oldLambda, Observation seq) {
+	public static Model refineModel(Model oldLambda, ObservationSequence seq) {
 		Model newLambda = new Model(oldLambda);
 		
 		/*
@@ -72,7 +72,7 @@ public class HMMFunction {
 		double[][][] diGamma = new double[T][N][N];
 		*/
 		
-		fillGammas(oldLambda, seq.Hsequence, seq.c, seq.gamma, seq.diGamma);
+		fillGammas(oldLambda, seq.sequence, seq.c, seq.gamma, seq.diGamma);
 		
 		// re-estimate pi
 		for(int i = 0; i < seq.N; i++) {
@@ -98,7 +98,7 @@ public class HMMFunction {
 				double numer = 0;
 				double denom = 0;
 				for(int t = 0; t < seq.T - 1; t++) {
-					if(seq.Hsequence[t] == j) {
+					if(seq.sequence[t] == j) {
 						numer += seq.gamma[t][i];
 					}
 					denom += seq.gamma[t][i];
