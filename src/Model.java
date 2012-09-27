@@ -1,4 +1,4 @@
-package markov;
+
 
 public class Model {
 	public double[][] A;

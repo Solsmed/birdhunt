@@ -46,54 +46,93 @@ public class Player {
     	 * P 
     	 * F 
     	 */
+    	    	
+    	lambda.B = new double[][] {{0.14, 0.86, 0.00},
+    							   {0.00, 0.00, 1.00},
+    							   {0.58, 0.00, 0.42},
+    							   {1.00, 0.00, 0.00}};
     	
-    	lambda.B = new double[][] {{0.21, 0.62, 0.17},
-    							    {0.07, 0.14, 0.79},
-    							    {0.30, 0.02, 0.68},
-    							    {0.97, 0.03, 0.02}};
+    	/*
     	
-    	int maxIters = 1;
+		[0.41 0.40 0.19]
+		[0.12 0.08 0.80]
+		[0.42 0.01 0.57]
+		[0.98 0.01 0.01]
+		
+		[0.17 0.40 0.43]
+		[0.04 0.09 0.87]
+		[0.14 0.01 0.85]
+		[0.92 0.02 0.06]
+ 
+    	 */
+    	
+    	int maxIters = 2000;
     	int iters = 0;
     	double oldLogProb = Double.NEGATIVE_INFINITY;
     	double logProb = 0;
     	
-    	int[] O = new int[pState.GetDuck(0).GetSeqLength()];
+    	/*
+    	Duck duck = pState.GetDuck(0);
+
+    	int[][] O = new int[pState.GetNumDucks()][];
     	
-    	System.out.println("Observations:");
-    	for(int t = 0; t < O.length; t++) {
-    		O[t] = pState.GetDuck(0).mSeq.get(t).GetHAction();
-    		System.out.print(O[t] + " ");
+    	for(int d = 0; d < O.length; d++) {
+    		int numActions = 2*pState.GetDuck(d).GetSeqLength();
+    		O[d] = new int[numActions];
+    		for(int a = 0; a < numActions; a++) {
+    			O[d][2*a] = pState.GetDuck(d).mSeq.get(a).GetHAction();
+    			O[d][2*a] = pState.GetDuck(d).mSeq.get(a).GetVAction();
+    		}
     	}
-    	System.out.println();
+    	*/
+    	
+    	Observation seq = new Observation(pState.GetDuck(0).mSeq);
+    	/*
+    	int[] O = new int[pState.GetDuck(0).mSeq.size()];
+    	for(int o = 0; o < O.length; o++) {
+    		O[o] = pState.GetDuck(0).mSeq.get(o).GetHAction();
+    	}
     	
     	int T = O.length;
     	double[] c = new double[T];
-    	
+    	*/
     	long start, stop;
-    	long lastIterTime = 1000;
-    	do {
+    	long lastIterTime = 0;
+    	while(true) {
     		start = System.currentTimeMillis();
-	    	lambda = HMMFunction.refineModel(lambda, O, c);	    	
+    		
+	    	lambda = HMMFunction.refineModel(lambda, seq);	    	
 	    	
 	    	logProb = 0;
-	    	for(int t = 0; t < T; t++) {
-	    		logProb += Math.log(c[t]);
+	    	for(int t = 0; t < seq.T; t++) {
+	    		logProb += Math.log(seq.c[t]);
 	    	}
 	    	logProb = -logProb;
 	    	
-	    	oldLogProb = logProb;
-    		iters++;
-    		stop = System.currentTimeMillis();
-    		lastIterTime = stop - start;
-    	} while(iters < maxIters && logProb > oldLogProb && pDue.TimeUntil() > 3*lastIterTime);
+	    	stop = System.currentTimeMillis();
+	    	lastIterTime = stop - start;
+	    		    	
+	    	iters++;
+	    	if(iters < maxIters && logProb > oldLogProb && pDue.TimeUntil() > (3*lastIterTime)) {
+	    		oldLogProb = logProb;
+	    		continue;
+	    	} else {
+	    		break;
+	    	}
+    	}
 
+    	System.out.println("Last action: " + seq.Hsequence[seq.T-1]);
+    	System.out.println("Next action?: " + seq.predictHaction());
+    	log(lastIterTime + " x3 " + (3*lastIterTime) + " time: " + pDue.TimeUntil());
+    	log(iters);
+    	log(logProb + " " + oldLogProb);
     	log(lambda);
     	
     	
     	turnKeeper++;
         //this line doesn't shoot any bird
         return Action.cDontShoot;
-
+        
         //this line would predict that bird 0 is totally stopped and shoot at it
         //return new Action(0,Action.ACTION_STOP,Action.ACTION_STOP,Action.BIRD_STOPPED);
     }

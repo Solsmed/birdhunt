@@ -1,4 +1,4 @@
-package markov;
+
 
 import java.util.Arrays;
 import java.util.Random;
@@ -62,44 +62,46 @@ public class HMMFunction {
 			a[i] += b[i];
 	}
 	
-	public static Model refineModel(Model oldLambda, int[] O, double[] c) {
+	public static Model refineModel(Model oldLambda, Observation seq) {
 		Model newLambda = new Model(oldLambda);
 		
+		/*
 		int T = O.length;
 		int N = oldLambda.N;
 		double[][] gamma = new double[T][N];
 		double[][][] diGamma = new double[T][N][N];
+		*/
 		
-		fillGammas(oldLambda, O, c, gamma, diGamma);
+		fillGammas(oldLambda, seq.Hsequence, seq.c, seq.gamma, seq.diGamma);
 		
 		// re-estimate pi
-		for(int i = 0; i < N; i++) {
-			newLambda.pi[i] = gamma[0][i];
+		for(int i = 0; i < seq.N; i++) {
+			newLambda.pi[i] = seq.gamma[0][i];
 		}
 		
 		// re-estimate A
-		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < N; j++) {
+		for(int i = 0; i < seq.N; i++) {
+			for(int j = 0; j < seq.N; j++) {
 				double numer = 0;
 				double denom = 0;
-				for(int t = 0; t < T - 1; t++) {
-					numer += diGamma[t][i][j];
-					denom += gamma[t][i];
+				for(int t = 0; t < seq.T - 1; t++) {
+					numer += seq.diGamma[t][i][j];
+					denom += seq.gamma[t][i];
 				}
 				newLambda.A[i][j] = numer / denom;
 			}
 		}
 		
 		// re-estimate B
-		for(int i = 0; i < N; i++) {
+		for(int i = 0; i < seq.N; i++) {
 			for(int j = 0; j < newLambda.M; j++) {
 				double numer = 0;
 				double denom = 0;
-				for(int t = 0; t < T - 1; t++) {
-					if(O[t] == j) {
-						numer += gamma[t][i];
+				for(int t = 0; t < seq.T - 1; t++) {
+					if(seq.Hsequence[t] == j) {
+						numer += seq.gamma[t][i];
 					}
-					denom += gamma[t][i];
+					denom += seq.gamma[t][i];
 				}
 				newLambda.B[i][j] = numer / denom;
 			}
