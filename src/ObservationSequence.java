@@ -30,12 +30,14 @@ public class ObservationSequence {
 					NUM_KEEP_W++;
 		}
 		
+		/*
 		StringBuffer sb = new StringBuffer();
 		for(int t = 0; t < T; t++) {
 			sb.append(actionToString(sequence.get(t)));
 			sb.append('\n');
 		}
 		System.out.println(sb.toString());
+		*/
 	}
 	
 	public int getMigrationDirection() {

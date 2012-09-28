@@ -46,7 +46,8 @@ public class Player {
 
     	for(int d = 0; d < pState.GetNumDucks(); d++) {
     		ObservationSequence seq = new ObservationSequence(pState.GetDuck(d).mSeq);
-			bird[d] = new ModelledObservation(seq);
+			//bird[d] = HMMFunction.getLabelledModelledObservation(ModelledObservation.labels, ModelledObservation.BinitH, ModelledObservation.BinitV, seq);
+    		bird[d] = new ModelledObservation(seq);
 			mapAdd(bird[d].lambda);
 			System.out.println(bird[d].lambda);
 		}
@@ -85,7 +86,7 @@ public class Player {
         //return Action.cDontShoot;
         
         //this line would predict that bird 0 is totally stopped and shoot at it
-    	Action action = bird[0].predictDiscreetAction();
+    	Action action = bird[0].predictFuzzyAction();
     	System.out.println(ObservationSequence.actionToString(action));
         return action;
     }

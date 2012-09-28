@@ -5,7 +5,7 @@ import java.util.Vector;
  *
  */
 public class ModelledObservation {
-	protected int N = 4;
+	protected int N = 3;
 	protected int M = 3;
 	
 	protected double H_gamma[][];
@@ -46,7 +46,7 @@ public class ModelledObservation {
 		V_diGamma = new double[O.T][N][N];
 	}
 	
-	private void iterateOnce() {
+	protected void iterateOnce() {
 		if(!lambda.isOptimal) {
 	    	double oldLogProb = lambda.logProb;
 	    	

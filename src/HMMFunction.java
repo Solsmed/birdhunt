@@ -5,7 +5,60 @@ import java.util.Random;
 
 public class HMMFunction {
 	public static ModelledObservation getLabelledModelledObservation(String[] labels, double[][] BinitH, double[][] BinitV, ObservationSequence O) {
-		return null;
+		// Initialise
+		int BigN = BinitH.length;
+		int N = 3;
+		int numPermutations = 4; // Math.chooseUnordered(BigN, N)
+		
+		int M = BinitH[0].length;
+		
+		ModelledObservation m[] = new ModelledObservation[numPermutations];
+		for(int p = 0; p < numPermutations; p++) {
+			m[p] = new ModelledObservation(O);
+		}
+		
+		int notIndex = 0;
+		
+		for(int p = 0; p < numPermutations; p++) {
+			int mIndex = 0;
+			m[p].lambda.stateLabels = new String[N];
+			for(int i = 0; i < BigN; i++) {
+				if(i != notIndex) {
+					System.arraycopy(BinitH[i], 0, m[p].lambda.Bh[mIndex], 0, M);
+					System.arraycopy(BinitV[i], 0, m[p].lambda.Bv[mIndex], 0, M);
+					m[p].lambda.stateLabels[mIndex] = labels[i];
+					mIndex++;
+				}
+			}
+			notIndex++;
+		}
+		
+		boolean allDone = false;
+		int iter = 0;
+		int maxIter = 30;
+		while(!allDone && iter < maxIter) {
+			allDone = true;
+			iter++;
+			for(int p = 0; p < numPermutations; p++) {
+				m[p].iterateOnce();
+				System.out.print(String.format("%.2f", m[p].lambda.logProb));
+				allDone = allDone && m[p].lambda.isOptimal; 
+			}
+			System.out.println();
+		}
+		
+		double maxSumLogProb = Double.NEGATIVE_INFINITY;
+		int mostProbableModelIndex = -1;
+		
+		for(int p = 0; p < numPermutations; p++) {
+			double sumProb = m[p].lambda.logProb;
+			if(sumProb > maxSumLogProb) {
+				maxSumLogProb = sumProb;
+				mostProbableModelIndex = p;
+			}
+		}
+		
+		return m[mostProbableModelIndex];
 	}
 	
 	public static BirdModel getInitModel(int N, int M) {
