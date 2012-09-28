@@ -4,6 +4,10 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class HMMFunction {
+	public static ModelledObservation getLabelledModelledObservation(String[] labels, double[][] BinitH, double[][] BinitV, ObservationSequence O) {
+		return null;
+	}
+	
 	public static BirdModel getInitModel(int N, int M) {
 		BirdModel lambda = new BirdModel(N, M);
 		
