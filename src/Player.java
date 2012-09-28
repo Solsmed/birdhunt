@@ -8,29 +8,12 @@ public class Player {
     ///There is no data in the beginning, so not much should be done here.
     Player()
     {
-    	colour = new HashMap<String, Set<Model2D>>();
+    	colour = new HashMap<String, Set<BirdModel>>();
     }
 
-    public static final int N = 3;
-    public static final int M = 5;
+
     
-    public static final String[] labels = new String[] {"Mi", "Qu", "Pa", "FD"};
-    
-    public static final double[][] BinitH = new double[][]
-    	//	  Kw     Ke    Aw    Ae     s
-    		{{0.50, 0.50, 0.00, 0.00, 0.00},  // M
-			 {0.16, 0.16, 0.16, 0.16, 0.34},  // Q
-			 {0.15, 0.15, 0.35, 0.35, 0.00},  // P
-			 {0.00, 0.00, 0.00, 0.00, 1.00}}; // F
-    
-    public static final double[][] BinitV = new double[][]
-    	 //   Ku     Kd    Au    Ad     s
-    		{{0.50, 0.50, 0.00, 0.00, 0.00},  // M
-			 {0.16, 0.16, 0.16, 0.16, 0.34},  // Q
-			 {0.15, 0.15, 0.35, 0.35, 0.00},  // P
-			 {0.00, 0.00, 0.00, 1.00, 0.00}}; // F  
-    
-    public Map<String, Set<Model2D>> colour;
+    public Map<String, Set<BirdModel>> colour;
     
     ///shoot!
 
@@ -58,28 +41,23 @@ public class Player {
          * This skeleton never shoots.
          */  	
     	
-    	Model2D trueModel[] = new Model2D[pState.GetNumDucks()];
-    	ObservationSequence2D seq[] = new ObservationSequence2D[pState.GetNumDucks()];
+    	ModelledObservation[] bird = new ModelledObservation[pState.GetNumDucks()];
     	
+
     	for(int d = 0; d < pState.GetNumDucks(); d++) {
-    		seq[d] = new ObservationSequence2D(pState.GetDuck(d).mSeq);
-			trueModel[d] = Estimator.getLabelledModel(labels, BinitH, BinitV, seq[d]);
-			seq[d].birdNumber = trueModel[d].birdNumber = d;
-			mapAdd(trueModel[d]);
-			System.out.println(trueModel[d]);
+    		ObservationSequence seq = new ObservationSequence(pState.GetDuck(d).mSeq);
+			bird[d] = new ModelledObservation(seq);
+			mapAdd(bird[d].lambda);
+			System.out.println(bird[d].lambda);
 		}
     	
-    	System.out.print("A-Lab: ");
-		for(int i = 0; i < N; i++)
-			System.out.print(String.format("%.2f ", seq[0].H.alpha[100][i]));
-		System.out.println();
 
     	long lastIterTime = 0;
     	long start, stop;
     	boolean refined[] = new boolean[pState.GetNumDucks()];
     	int numUnrefinedDucks = pState.GetNumDucks();
     	
-    	while (pDue.TimeUntil() > 1.15*lastIterTime) {
+    	while (pDue.TimeUntil() > 1.15*lastIterTime && numUnrefinedDucks > 0) {
     		start = System.currentTimeMillis();
     		
     		long deadlineTime = (pDue.TimeUntil() / 2) / numUnrefinedDucks;
@@ -88,7 +66,7 @@ public class Player {
     		
     		for(int d = 0; d < pState.GetNumDucks(); d++) {
     			if(!refined[d]) {
-    				if(Estimator.refineModelLoop(trueModel[d], seq[d], deadlineTime))
+    				if(bird[d].refineModel(deadlineTime + System.currentTimeMillis()))
     					refined[d] = true;
     				else
     					numUnrefinedDucks++;
@@ -99,21 +77,15 @@ public class Player {
     		lastIterTime = stop - start;
     	}
     	
-		System.out.print("Alpha: ");
-		for(int i = 0; i < N; i++)
-			System.out.print(String.format("%.2f ", seq[0].H.alpha[100][i]));
-		System.out.println();
+    	System.out.println(bird[0].lambda);
 
-    	System.out.println("Next H-action?: " + seq[0].H.predictAction());
-    	System.out.println("Next V-action?: " + seq[0].V.predictAction());
- 
     	
     	turnKeeper++;
         //this line doesn't shoot any bird
         //return Action.cDontShoot;
         
         //this line would predict that bird 0 is totally stopped and shoot at it
-    	Action action = Estimator.predictAction(trueModel[0], seq[0]);
+    	Action action = bird[0].predictDiscreetAction();
     	System.out.println(ObservationSequence.actionToString(action));
         return action;
     }
@@ -152,12 +124,12 @@ public class Player {
         System.out.println("HIT DUCK!!!");
     }
     
-    void mapAdd(Model2D m) {
+    void mapAdd(BirdModel m) {
     	String key = m.getMapString();
     	
-    	Set<Model2D> mSet = colour.get(key);
+    	Set<BirdModel> mSet = colour.get(key);
     	if(mSet == null) {
-    		mSet = new HashSet<Model2D>();
+    		mSet = new HashSet<BirdModel>();
     		colour.put(key, mSet);
     	}
     	

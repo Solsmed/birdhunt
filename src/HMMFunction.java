@@ -4,15 +4,16 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class HMMFunction {
-	public static Model getInitModel(int N, int M) {
-		Model lambda = new Model(N, M);
+	public static BirdModel getInitModel(int N, int M) {
+		BirdModel lambda = new BirdModel(N, M);
 		
 		double Namp = 0.15*(1.0/N);
 		double Mamp = 0.15*(1.0/M);
 		
 		for(int i = 0; i < N; i++) {
 			Arrays.fill(lambda.A[i], 1.0/N);
-			Arrays.fill(lambda.B[i], 1.0/M);
+			Arrays.fill(lambda.Bh[i], 1.0/M);
+			Arrays.fill(lambda.Bv[i], 1.0/M);
 		}
 		
 		Arrays.fill(lambda.pi, 1.0/N);
@@ -22,9 +23,11 @@ public class HMMFunction {
 		
 		for(int i = 0; i < N; i++) {
 			double[] Anoise = getNoiseVector(N, Namp);
-			double[] Bnoise = getNoiseVector(M, Mamp);
+			double[] Bhnoise = getNoiseVector(M, Mamp);
+			double[] Bvnoise = getNoiseVector(M, Mamp);
 			vectorAdd(lambda.A[i], Anoise);
-			vectorAdd(lambda.B[i], Bnoise);
+			vectorAdd(lambda.Bh[i], Bhnoise);
+			vectorAdd(lambda.Bv[i], Bvnoise);
 		}
 		
 		return lambda;
@@ -62,129 +65,158 @@ public class HMMFunction {
 			a[i] += b[i];
 	}
 	
-	public static Model refineModel(Model oldLambda, ObservationSequence seq) {
-		Model newLambda = new Model(oldLambda);
+	public static BirdModel getRefinedModel(ModelledObservation bird) {
+		BirdModel newLambdaH = new BirdModel(bird.lambda);
+		BirdModel newLambdaV = new BirdModel(bird.lambda);
 		
-		/*
-		int T = O.length;
-		int N = oldLambda.N;
-		double[][] gamma = new double[T][N];
-		double[][][] diGamma = new double[T][N][N];
-		*/
+		BirdModel newLambda = new BirdModel(bird.lambda);
+
+		double[] H_c = new double[bird.O.T];
+		double[] V_c = new double[bird.O.T];
 		
-		fillGammas(oldLambda, seq.sequence, seq.c, seq.gamma, seq.diGamma);
+		fillGammas(newLambdaH.A, newLambdaH.Bh, newLambdaH.pi, bird.O.H_action, H_c, bird.H_gamma, bird.H_diGamma);
+		fillGammas(newLambdaV.A, newLambdaV.Bv, newLambdaV.pi, bird.O.V_action, V_c, bird.V_gamma, bird.V_diGamma);
 		
 		// re-estimate pi
-		for(int i = 0; i < seq.N; i++) {
-			newLambda.pi[i] = seq.gamma[0][i];
+		for(int i = 0; i < bird.N; i++) {
+			newLambda.pi[i] = (bird.H_gamma[0][i] + bird.V_gamma[0][i]) / 2;
 		}
 		
 		// re-estimate A
-		for(int i = 0; i < seq.N; i++) {
-			for(int j = 0; j < seq.N; j++) {
+		for(int i = 0; i < bird.N; i++) {
+			for(int j = 0; j < bird.N; j++) {
 				double numer = 0;
 				double denom = 0;
-				for(int t = 0; t < seq.T - 1; t++) {
-					numer += seq.diGamma[t][i][j];
-					denom += seq.gamma[t][i];
+				for(int t = 0; t < bird.O.T - 1; t++) {
+					numer += bird.H_diGamma[t][i][j];
+					denom += bird.H_gamma[t][i];
 				}
-				newLambda.A[i][j] = numer / denom;
+				newLambdaH.A[i][j] = numer / denom;
+			}
+		}
+		for(int i = 0; i < bird.N; i++) {
+			for(int j = 0; j < bird.N; j++) {
+				double numer = 0;
+				double denom = 0;
+				for(int t = 0; t < bird.O.T - 1; t++) {
+					numer += bird.V_diGamma[t][i][j];
+					denom += bird.V_gamma[t][i];
+				}
+				newLambdaV.A[i][j] = numer / denom;
+			}
+		}
+		for(int i = 0; i < bird.N; i++) {
+			for(int j = 0; j < bird.N; j++) {
+				newLambda.A[i][j] = (newLambdaH.A[i][j] + newLambdaV.A[i][j]) / 2;				
 			}
 		}
 		
-		// re-estimate B
-		for(int i = 0; i < seq.N; i++) {
-			for(int j = 0; j < newLambda.M; j++) {
+		// re-estimate Bh
+		for(int i = 0; i < bird.N; i++) {
+			for(int j = 0; j < bird.M; j++) {
 				double numer = 0;
 				double denom = 0;
-				for(int t = 0; t < seq.T - 1; t++) {
-					if(seq.sequence[t] == j) {
-						numer += seq.gamma[t][i];
+				for(int t = 0; t < bird.O.T - 1; t++) {
+					if(bird.O.H_action[t] == j) {
+						numer += bird.H_gamma[t][i];
 					}
-					denom += seq.gamma[t][i];
+					denom += bird.H_gamma[t][i];
 				}
-				newLambda.B[i][j] = numer / denom;
+				newLambda.Bh[i][j] = numer / denom;
 			}
 		}
+		
+		// re-estimate Bv
+		for(int i = 0; i < bird.N; i++) {
+			for(int j = 0; j < bird.M; j++) {
+				double numer = 0;
+				double denom = 0;
+				for(int t = 0; t < bird.O.T - 1; t++) {
+					if(bird.O.V_action[t] == j) {
+						numer += bird.V_gamma[t][i];
+					}
+					denom += bird.V_gamma[t][i];
+				}
+				newLambda.Bv[i][j] = numer / denom;
+			}
+		}
+		
+    	double logProb = 0;
+    	for(int t = 0; t < bird.O.T; t++) {
+    		logProb += Math.log(H_c[t]) + Math.log(V_c[t]);
+    	}
+    	newLambda.logProb = -logProb;
 
 		return newLambda;
 	}
 	
-	public static void fillGammas(Model lambda, int[] O, double[] c, double[][] gamma, double[][][] diGamma) {
+	// writes to c, gamma and diGamma
+	private static void fillGammas(double[][] A, double[][] B, double[] pi, int[] O, double[] c, double[][] gamma, double[][][] diGamma) {
 		int T = O.length;
-		double[][] alpha = new double[T][lambda.N];
-		double[][] beta = new double[T][lambda.N];
+		double[][] alpha = new double[T][A.length];
+		double[][] beta = new double[T][A.length];
 		//double[][] gamma = new double[T][lambda.N];
 		//double[][][] diGamma = new double[T][lambda.N][lambda.N];
 		//double[] c = new double[T];
 		
-		alphaPass(lambda, O, alpha, c);
-		betaPass(lambda, O, beta, c);
+		alphaPass(A, B, pi, O, alpha, c);
+		betaPass(A, B, O, beta, c);
 		
-		diGamma(lambda, O, alpha, beta, gamma, diGamma);
-		
-		int a;
-		for(int t = 0; t < T; t++) {
-			for(int i = 0; i < lambda.N; i++) {
-				if(Double.isNaN(gamma[t][i])) {
-					a = 1;
-				}
-			}
-		}
+		diGamma(A, B, O, alpha, beta, gamma, diGamma);
 	}
 	
 	// writes to alpha[][] and c[]
-	public static void alphaPass(Model lambda, int[] O, double[][] alpha, double[] c) {	
+	private static void alphaPass(double[][] A, double[][] B, double[] pi, int[] O, double[][] alpha, double[] c) {	
 		int T = O.length;
 		
 		// compute alpha[0][i]
 		c[0] = 0;
-		for (int i = 0; i < lambda.N; i++) {
-			alpha[0][i] = lambda.pi[i]*lambda.B[i][O[0]];
+		for (int i = 0; i < A.length; i++) {
+			alpha[0][i] = pi[i]*B[i][O[0]];
 			c[0] += alpha[0][i];
 		}
 		
 		// scale the alpha[0][i]
 		c[0] = 1 / c[0];
-		for (int i = 0; i < lambda.N; i++) {
+		for (int i = 0; i < A.length; i++) {
 			alpha[0][i] *= c[0];
 		}
 		
 		// compute alpha[t][i]
 		for(int t = 1; t < T; t++) {
 			c[t] = 0;
-			for(int i = 0; i < lambda.N; i++) {
+			for(int i = 0; i < A.length; i++) {
 				alpha[t][i] = 0;
-				for(int j = 0; j < lambda.N; j++) {
-					alpha[t][i] += alpha[t-1][j]*lambda.A[j][i];
+				for(int j = 0; j < A.length; j++) {
+					alpha[t][i] += alpha[t-1][j]*A[j][i];
 				}
-				alpha[t][i] *= lambda.B[i][O[t]];
+				alpha[t][i] *= B[i][O[t]];
 				c[t] += alpha[t][i];
 			}
 			
 			// scale alpha[t][i]
 			c[t] = 1 / c[t];
-			for (int i = 0; i < lambda.N; i++) {
+			for (int i = 0; i < A.length; i++) {
 				alpha[t][i] *= c[t];
 			}
 		}
 	}
 	
 	// writes to beta[][]
-	public static void betaPass(Model lambda, int[] O, double[][] beta, double[] c) {
+	private static void betaPass(double[][] A, double[][] B, int[] O, double[][] beta, double[] c) {
 		int T = O.length;
 		
 		// Let beta[T-1][i] = 1 scaled by c[T-1]
-		for(int i = 0; i < lambda.N; i++) {
+		for(int i = 0; i < A.length; i++) {
 			beta[T-1][i] = c[T-1];
 		}
 		
 		// beta pass
 		for(int t = T - 2; t >= 0; t--) {
-			for(int i = 0; i < lambda.N; i++) {
+			for(int i = 0; i < A.length; i++) {
 				beta[t][i] = 0;
-				for(int j = 0; j < lambda.N; j++) {
-					beta[t][i] += lambda.A[i][j]*lambda.B[j][O[t+1]]*beta[t+1][j];
+				for(int j = 0; j < A.length; j++) {
+					beta[t][i] += A[i][j]*B[j][O[t+1]]*beta[t+1][j];
 				}
 				// scale beta[t][i] with same scale factor as alpha[t][i]
 				beta[t][i] *= c[t];
@@ -192,23 +224,24 @@ public class HMMFunction {
 		}
 	}
 
-	public static void diGamma(Model lambda, int[] O, double[][] alpha, double[][] beta, double[][] gamma, double[][][] diGamma) {
+	// writes to gamma and diGamma
+	private static void diGamma(double[][] A, double[][] B, int[] O, double[][] alpha, double[][] beta, double[][] gamma, double[][][] diGamma) {
 		int T = O.length;
-		double[][] cache = new double[lambda.N][lambda.N];
+		double[][] cache = new double[A.length][A.length];
 		
 		for(int t = 0; t < T - 1; t++) {
 			double denom = 0;
 			
-			for(int i = 0; i < lambda.N; i++) {
-				for(int j = 0; j < lambda.N; j++) {
-					cache[i][j] = alpha[t][i]*lambda.A[i][j]*lambda.B[j][O[t+1]]*beta[t+1][j];
+			for(int i = 0; i < A.length; i++) {
+				for(int j = 0; j < A.length; j++) {
+					cache[i][j] = alpha[t][i]*A[i][j]*B[j][O[t+1]]*beta[t+1][j];
 					denom += cache[i][j];
 				}
 			}
 			
-			for(int i = 0; i < lambda.N; i++) {
+			for(int i = 0; i < A.length; i++) {
 				gamma[t][i] = 0;
-				for(int j = 0; j < lambda.N; j++) {
+				for(int j = 0; j < A.length; j++) {
 					diGamma[t][i][j] = cache[i][j] / denom;
 					gamma[t][i] += diGamma[t][i][j];
 				}
