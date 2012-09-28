@@ -44,6 +44,8 @@ public class Model {
 		
 		this.N = A.length;
 		this.M = B[0].length;
+		
+		stateLabels = new String[] {"0","1","2"};
 	}
 	
 	public String toString() {
