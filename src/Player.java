@@ -4,17 +4,13 @@ public class Player {
 	
     ///constructor
     private static int turnKeeper = 0;
+    BirdTracker tracker;
     
     ///There is no data in the beginning, so not much should be done here.
     Player()
     {
-    	colour = new HashMap<String, Set<BirdModel>>();
     }
 
-
-    
-    public Map<String, Set<BirdModel>> colour;
-    
     ///shoot!
 
     ///This is the function where you should do all your work.
@@ -34,61 +30,21 @@ public class Player {
     ///prefer to pass
     Action Shoot(State pState,Deadline pDue)
     {
+    	turnKeeper++;
     	System.out.println(turnKeeper + ": Shoot? Where!?");
 
         /*
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
-         */  	
+         */ 
+    	if(tracker == null)
+    		tracker = new BirdTracker(pState.GetNumDucks());
     	
-    	ModelledObservation[] bird = new ModelledObservation[pState.GetNumDucks()];
+    	tracker.studyBirds(pState, pDue);
     	
-
-    	for(int d = 0; d < pState.GetNumDucks(); d++) {
-    		ObservationSequence seq = new ObservationSequence(pState.GetDuck(d).mSeq);
-			//bird[d] = HMMFunction.getLabelledModelledObservation(ModelledObservation.labels, ModelledObservation.BinitH, ModelledObservation.BinitV, seq);
-    		bird[d] = new ModelledObservation(seq);
-			mapAdd(bird[d].lambda);
-			System.out.println(bird[d].lambda);
-		}
-    	
-
-    	long lastIterTime = 0;
-    	long start, stop;
-    	boolean refined[] = new boolean[pState.GetNumDucks()];
-    	int numUnrefinedDucks = pState.GetNumDucks();
-    	
-    	while (pDue.TimeUntil() > 1.15*lastIterTime && numUnrefinedDucks > 0) {
-    		start = System.currentTimeMillis();
-    		
-    		long deadlineTime = (pDue.TimeUntil() / 2) / numUnrefinedDucks;
-    		
-    		numUnrefinedDucks = 0;
-    		
-    		for(int d = 0; d < pState.GetNumDucks(); d++) {
-    			if(!refined[d]) {
-    				if(bird[d].refineModel(deadlineTime + System.currentTimeMillis()))
-    					refined[d] = true;
-    				else
-    					numUnrefinedDucks++;
-    			}
-    		}
-    		
-    		stop = System.currentTimeMillis();
-    		lastIterTime = stop - start;
-    	}
-    	
-    	System.out.println(bird[0].lambda);
-
-    	
-    	turnKeeper++;
-        //this line doesn't shoot any bird
-        //return Action.cDontShoot;
-        
-        //this line would predict that bird 0 is totally stopped and shoot at it
-    	Action action = bird[0].predictFuzzyAction();
-    	System.out.println(ObservationSequence.actionToString(action));
-        return action;
+    	Action headShot = tracker.getSuggestedAction();
+    	System.out.println("My action: " + ObservationSequence.actionToString(headShot));
+    	return headShot;
     }
     
     ///guess the species!
@@ -122,9 +78,10 @@ public class Player {
     ///\param pSpecies the species of the duck (it will also be set for this duck in pState from now on)    
     void Hit(int pDuck,int pSpecies)
     {
-        System.out.println("HIT DUCK!!!");
+        System.out.println("                                  HIT DUCK!!!");
+        tracker.registerDeadBird(pDuck, pSpecies);
     }
-    
+    /*
     void mapAdd(BirdModel m) {
     	String key = m.getMapString();
     	
@@ -136,4 +93,5 @@ public class Player {
     	
     	mSet.add(m);
     }
+    */
 }

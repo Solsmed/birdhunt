@@ -4,13 +4,13 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class HMMFunction {
-	public static ModelledObservation getLabelledModelledObservation(String[] labels, double[][] BinitH, double[][] BinitV, ObservationSequence O) {
+	public static ModelledObservation getLabelledModelledObservation(String[] labels, double[][] Binit, ObservationSequence O) {
 		// Initialise
-		int BigN = BinitH.length;
-		int N = 3;
+		int BigN = Binit.length;
+		int N = ModelledObservation.N;
 		int numPermutations = 4; // Math.chooseUnordered(BigN, N)
 		
-		int M = BinitH[0].length;
+		int M = Binit[0].length;
 		
 		ModelledObservation m[] = new ModelledObservation[numPermutations];
 		for(int p = 0; p < numPermutations; p++) {
@@ -24,8 +24,9 @@ public class HMMFunction {
 			m[p].lambda.stateLabels = new String[N];
 			for(int i = 0; i < BigN; i++) {
 				if(i != notIndex) {
-					System.arraycopy(BinitH[i], 0, m[p].lambda.Bh[mIndex], 0, M);
-					System.arraycopy(BinitV[i], 0, m[p].lambda.Bv[mIndex], 0, M);
+					//System.arraycopy(BinitH[i], 0, m[p].lambda.Bh[mIndex], 0, M);
+					//System.arraycopy(BinitV[i], 0, m[p].lambda.Bv[mIndex], 0, M);
+					System.arraycopy(Binit[i], 0, m[p].lambda.B[mIndex], 0, M);
 					m[p].lambda.stateLabels[mIndex] = labels[i];
 					mIndex++;
 				}
@@ -35,7 +36,7 @@ public class HMMFunction {
 		
 		boolean allDone = false;
 		int iter = 0;
-		int maxIter = 30;
+		int maxIter = 90;
 		while(!allDone && iter < maxIter) {
 			allDone = true;
 			iter++;
@@ -69,8 +70,9 @@ public class HMMFunction {
 		
 		for(int i = 0; i < N; i++) {
 			Arrays.fill(lambda.A[i], 1.0/N);
-			Arrays.fill(lambda.Bh[i], 1.0/M);
-			Arrays.fill(lambda.Bv[i], 1.0/M);
+			//Arrays.fill(lambda.Bh[i], 1.0/M);
+			//Arrays.fill(lambda.Bv[i], 1.0/M);
+			Arrays.fill(lambda.B[i], 1.0/M);
 		}
 		
 		Arrays.fill(lambda.pi, 1.0/N);
@@ -80,11 +82,13 @@ public class HMMFunction {
 		
 		for(int i = 0; i < N; i++) {
 			double[] Anoise = getNoiseVector(N, Namp);
-			double[] Bhnoise = getNoiseVector(M, Mamp);
-			double[] Bvnoise = getNoiseVector(M, Mamp);
+			//double[] Bhnoise = getNoiseVector(M, Mamp);
+			//double[] Bvnoise = getNoiseVector(M, Mamp);
+			double[] Bnoise = getNoiseVector(M, Mamp);
 			vectorAdd(lambda.A[i], Anoise);
-			vectorAdd(lambda.Bh[i], Bhnoise);
-			vectorAdd(lambda.Bv[i], Bvnoise);
+			//vectorAdd(lambda.Bh[i], Bhnoise);
+			//vectorAdd(lambda.Bv[i], Bvnoise);
+			vectorAdd(lambda.B[i], Bnoise);
 		}
 		
 		return lambda;
@@ -122,6 +126,56 @@ public class HMMFunction {
 			a[i] += b[i];
 	}
 	
+	public static BirdModel getRefinedModel(ModelledObservation bird) {
+		BirdModel newLambda = new BirdModel(bird.lambda);
+		
+		double[] c = new double[bird.O.T];
+		
+		fillGammas(newLambda.A, newLambda.B, newLambda.pi, bird.O.action, c, bird.gamma, bird.diGamma);
+		
+		// re-estimate pi
+		for(int i = 0; i < bird.N; i++) {
+			newLambda.pi[i] = bird.gamma[0][i];
+		}
+		
+		// re-estimate A
+		for(int i = 0; i < bird.N; i++) {
+			for(int j = 0; j < bird.N; j++) {
+				double numer = 0;
+				double denom = 0;
+				for(int t = 0; t < bird.O.T - 1; t++) {
+					numer += bird.diGamma[t][i][j];
+					denom += bird.gamma[t][i];
+				}
+				newLambda.A[i][j] = numer / denom;
+			}
+		}
+		
+		// re-estimate Bh
+		for(int i = 0; i < bird.N; i++) {
+			for(int j = 0; j < bird.M; j++) {
+				double numer = 0;
+				double denom = 0;
+				for(int t = 0; t < bird.O.T - 1; t++) {
+					if(bird.O.action[t] == j) {
+						numer += bird.gamma[t][i];
+					}
+					denom += bird.gamma[t][i];
+				}
+				newLambda.B[i][j] = numer / denom;
+			}
+		}
+		
+    	double logProb = 0;
+    	for(int t = 0; t < bird.O.T; t++) {
+    		logProb += Math.log(c[t]);
+    	}
+    	newLambda.logProb = -logProb;
+
+		return newLambda;
+	}
+	
+	/*
 	public static BirdModel getRefinedModel(ModelledObservation bird) {
 		BirdModel newLambdaH = new BirdModel(bird.lambda);
 		BirdModel newLambdaV = new BirdModel(bird.lambda);
@@ -206,7 +260,7 @@ public class HMMFunction {
 
 		return newLambda;
 	}
-	
+	*/
 	// writes to c, gamma and diGamma
 	private static void fillGammas(double[][] A, double[][] B, double[] pi, int[] O, double[] c, double[][] gamma, double[][][] diGamma) {
 		int T = O.length;

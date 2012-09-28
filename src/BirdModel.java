@@ -2,8 +2,9 @@
 
 public class BirdModel {
 	public double[][] A;
-	public double[][] Bh;
-	public double[][] Bv;
+	//public double[][] Bh;
+	//public double[][] Bv;
+	public double[][] B;
 	
 	public double[] pi;
 	public String[] stateLabels;
@@ -16,8 +17,9 @@ public class BirdModel {
 	
 	public BirdModel(BirdModel l) {
 		A = new double[l.N][l.N];
-		Bh = new double[l.N][l.M];
-		Bv = new double[l.N][l.M];
+		//Bh = new double[l.N][l.M];
+		//Bv = new double[l.N][l.M];
+		B = new double[l.N][l.M];
 		pi = new double[l.N];
 		if(l.stateLabels != null) {
 			stateLabels = new String[l.stateLabels.length];
@@ -32,23 +34,28 @@ public class BirdModel {
 		System.arraycopy(l.pi, 0, pi, 0, N);
 		for(int i = 0; i < N; i++) {
 			System.arraycopy(l.A[i], 0, A[i], 0, N);
-			System.arraycopy(l.Bh[i], 0, Bh[i], 0, M);
-			System.arraycopy(l.Bv[i], 0, Bv[i], 0, M);
+			//System.arraycopy(l.Bh[i], 0, Bh[i], 0, M);
+			//System.arraycopy(l.Bv[i], 0, Bv[i], 0, M);
+			System.arraycopy(l.B[i], 0, B[i], 0, M);
 		}
 	}
 	
 	public BirdModel(int N, int M) {
-		this(new double[N][N], new double[N][M], new double[N][M], new double[N]);
+		//this(new double[N][N], new double[N][M], new double[N][M], new double[N]);
+		this(new double[N][N], new double[N][M], new double[N]);
 	}
 	
-	public BirdModel(double[][] A, double[][] Bh, double[][] Bv, double[] pi) {
+	//public BirdModel(double[][] A, double[][] Bh, double[][] Bv, double[] pi) {
+	public BirdModel(double[][] A, double[][] B, double[] pi) {
 		this.A = A;
-		this.Bh = Bh;
-		this.Bv = Bv;
+		//this.Bh = Bh;
+		//this.Bv = Bv;
+		this.B = B;
 		this.pi = pi;
 		
 		this.N = A.length;
-		this.M = Bh[0].length;
+		//this.M = Bh[0].length;
+		this.M = B[0].length;
 		
 		logProb = Double.NEGATIVE_INFINITY;
 		isOptimal = false;
@@ -60,9 +67,9 @@ public class BirdModel {
 	public String toString() {
 		StringBuffer output = new StringBuffer();
 		
-		output.append("                     " + stateLabels[0] + "   " + stateLabels[1] + "   " + stateLabels[2] + "          K    A    s   \n");
+		output.append("                     " + stateLabels[0] + "   " + stateLabels[1] + "   " + stateLabels[2] + "   " + stateLabels[3] + "          Kk   Ka   Ks   Ak   Aa   As   Sk   Sa   Ss\n");
 		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < 1 + N + M + M; j++) {
+			for(int j = 0; j < 1 + N + M/* + M*/; j++) {
 				if(j == 0) {
 					if(i == 0)
 						output.append(stateLabels[i] + ": ¹ = [");
@@ -81,11 +88,11 @@ public class BirdModel {
 				if(j == N + 1) {
 					output.deleteCharAt(output.length()-1);
 					if(i == 0)
-						output.append("]  Bh = [");
+						output.append("]  B = [");
 					else
-						output.append("]       [");
+						output.append("]      [");
 				}
-				
+				/*
 				if(j == M + N + 1) {
 					output.deleteCharAt(output.length()-1);
 					if(i == 0)
@@ -93,15 +100,19 @@ public class BirdModel {
 					else
 						output.append("]       [");
 				}
-				
+				*/
 				if (j == 0)
 					output.append(String.format("%.2f ", pi[i]));
 				else if (j < N + 1)
 					output.append(String.format("%.2f ", A[i][j-1]));
+				else
+					output.append(String.format("%.2f ", B[i][j-N-1]));
+				/*
 				else if (j < M + N + 1)
 					output.append(String.format("%.2f ", Bh[i][j-N-1]));
 				else
 					output.append(String.format("%.2f ", Bv[i][j-M-N-1]));
+					*/
 			}
 			output.deleteCharAt(output.length()-1);
 			output.append("]\n");
@@ -110,6 +121,7 @@ public class BirdModel {
 		return output.toString();
 	}
 	
+	/*
 	@Override
 	public int hashCode() {
 		return getMapString().hashCode();
@@ -120,4 +132,5 @@ public class BirdModel {
 			return (stateLabels[0] + stateLabels[1] + stateLabels[2]);
 		return "";
 	}
+	*/
 }

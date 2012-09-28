@@ -1,8 +1,9 @@
 import java.util.Vector;
 
 public class ObservationSequence {
-	protected int[] H_action;
-	protected int[] V_action;
+	//protected int[] H_action;
+	//protected int[] V_action;
+	protected int[] action;
 	protected int[] movement;
 	
 	private int NUM_KEEP_W = 0;
@@ -13,17 +14,20 @@ public class ObservationSequence {
 	public ObservationSequence(Vector<Action> sequence) {
 		T = sequence.size();
 		
-		H_action = new int[T];
-		V_action = new int[T];
+		//H_action = new int[T];
+		//V_action = new int[T];
+		action = new int[T];
 		movement = new int[T];
 		
 		for(int a = 0; a < T; a++) {
 			Action ca = sequence.get(a);
-			H_action[a] = ca.GetHAction();
-			V_action[a] = ca.GetVAction();
+			//H_action[a] = ca.GetHAction();
+			//V_action[a] = ca.GetVAction();
+			action[a] = ca.GetHAction() * 3 + ca.GetVAction();
 			movement[a] = ca.GetMovement();
 			
-			if(H_action[a] == Action.ACTION_KEEPSPEED)
+			//if(H_action[a] == Action.ACTION_KEEPSPEED)
+			if(action[a] / 3 == Action.ACTION_KEEPSPEED)
 				if((movement[a] & Action.MOVE_EAST) != 0)
 					NUM_KEEP_E++;
 				else if ((movement[a] & Action.MOVE_WEST) != 0)
@@ -38,6 +42,7 @@ public class ObservationSequence {
 		}
 		System.out.println(sb.toString());
 		*/
+		
 	}
 	
 	public int getMigrationDirection() {

@@ -1,55 +1,74 @@
-import java.util.Vector;
-
 /**
  * @author Solsmed
  *
  */
 public class ModelledObservation {
-	protected int N = 3;
-	protected int M = 3;
+	protected static int N = 4;
+	protected static int M = 9;
 	
-	protected double H_gamma[][];
-	protected double H_diGamma[][][];
-	
-	protected double V_gamma[][];
-	protected double V_diGamma[][][];
-	
-	int birdNumber;
-	
-    public static final String[] labels = new String[] {"Mi", "Qu", "Pa", "FD"};
+	//protected double H_gamma[][];
+	//protected double H_diGamma[][][];
+	//protected double V_gamma[][];
+	//protected double V_diGamma[][][];
+	protected double gamma[][];
+	protected double diGamma[][][];
     
-    public static final double[][] BinitH = new double[][]
-    	//	  K     A      s
-    		{{1.00, 0.00, 0.00},  // M
-			 {0.40, 0.30, 0.30},  // Q
-			 {0.30, 0.70, 0.00},  // P
-			 {0.00, 0.00, 1.00}}; // F
-    
-    public static final double[][] BinitV = new double[][]
-        //	  K     A      s
-    		{{0.00, 0.15, 0.85},  // M
-			 {0.40, 0.30, 0.30},  // Q
-			 {0.30, 0.70, 0.00},  // P
-			 {0.00, 1.00, 0.00}}; // F  
-	
 	BirdModel lambda;
 	ObservationSequence O;
 	
+	int birdNumber;
+	int species = Duck.SPECIES_UNKNOWN;
+	double speciesCertainty = 0;
+	
+	double lastProbability;
+	
+    public static final String[] labels = new String[] {"Mi", "Qu", "Pa", "FD"};
+    
+    private static final double[][] BinitH = new double[][]
+    	//	  K     A      S
+    		{{1.00, 0.00, 0.00},  // M
+			 {0.40, 0.30, 0.30},  // Q
+			 {0.30, 0.70, 0.00},  // P
+			 {0.05, 0.05, 0.90}}; // F
+    
+    private static final double[][] BinitV = new double[][]
+        //	  k     a      s
+    		{{0.00, 0.15, 0.85},  // M
+			 {0.40, 0.30, 0.30},  // Q
+			 {0.30, 0.70, 0.00},  // P
+			 {0.19, 0.80, 0.01}}; // F  
+	
+    public static double[][] getJointInitB() {
+    	double[][] jointInitB = new double[BinitH.length][M];
+    	
+    	for(int i = 0; i < BinitH.length; i++) {
+    		for(int k = 0; k < M; k++) {
+    			jointInitB[i][k] = BinitH[i][k / 3] * BinitV[i][k % 3];
+    		}
+    	}
+    	
+    	return jointInitB;
+    }
+	
 	public ModelledObservation(ObservationSequence O) {
 		this.lambda = HMMFunction.getInitModel(N, M);//getLabelledModel(O);
+		
+		this.lambda.B = getJointInitB();
+		
+		setObservation(O);
+	}
+	
+	public void setObservation(ObservationSequence O) {
 		this.O = O;
-		
-		H_gamma = new double[O.T][N];
-		H_diGamma = new double[O.T][N][N];
-		
-		V_gamma = new double[O.T][N];
-		V_diGamma = new double[O.T][N][N];
+		gamma = new double[O.T][N];
+		diGamma = new double[O.T][N][N];
 	}
 	
 	protected void iterateOnce() {
 		if(!lambda.isOptimal) {
 	    	double oldLogProb = lambda.logProb;
 	    	
+	    	//System.out.println("refining...");
 			lambda = HMMFunction.getRefinedModel(this);	
 					
 	    	if(lambda.logProb < oldLogProb)
@@ -57,6 +76,33 @@ public class ModelledObservation {
 		}
 	}
 
+	public Action predictDiscreetAction() {
+		double[] stateT = getProbStateT(lambda.A, diGamma);
+		
+		// calculate most probable discreet state
+		int probState = 0;
+		double maxState = 0;
+		for(int k = 0; k < N; k++) {
+			if(stateT[k] > maxState) {
+				maxState = stateT[k];
+				probState = k;
+			}
+		}
+		
+		// get most probable action for our state
+		int action = 0;
+		double maxAction = 0;
+		for(int k = 0; k < M; k++) {
+			if(lambda.B[probState][k] > maxAction) {
+				maxAction = lambda.B[probState][k];
+				action = k;
+			}
+		}
+		
+		lastProbability = maxAction * maxState;
+		return new Action(birdNumber, action / 3, action % 3, getLastMovement());
+	}
+	/*
 	public Action predictDiscreetAction() {
 		double[] HstateT = getProbStateT(lambda.A, H_diGamma);
 		double[] VstateT = getProbStateT(lambda.A, V_diGamma);
@@ -105,7 +151,9 @@ public class ModelledObservation {
 		
 		return new Action(birdNumber, Haction, Vaction, getLastMovement());
 	}
+	*/
 	
+	/*
 	public Action predictFuzzyAction() {
 		double[] HstateT = getProbStateT(lambda.A, H_diGamma);
 		double[] VstateT = getProbStateT(lambda.A, V_diGamma);
@@ -130,7 +178,24 @@ public class ModelledObservation {
 		}
 			
 		return new Action(birdNumber, maxIndexH, maxIndexV, getLastMovement());
-
+	}
+	*/
+	public Action predictFuzzyAction() {
+		double[] stateT = getProbStateT(lambda.A, diGamma);
+		
+		// fuzzy observations
+		double[] obs = weightedObservations(stateT, lambda.B);
+		
+		int maxIndex = 0;
+		double max = 0;
+		for(int k = 0; k < M; k++) {
+			if(obs[k] > max) {
+				max = obs[k];
+				maxIndex = k;
+			}
+		}
+			
+		return new Action(birdNumber, maxIndex / 3, maxIndex % 3, getLastMovement());
 	}
 	
 	private int getLastMovement() {
@@ -185,7 +250,7 @@ public class ModelledObservation {
 		// refine models
     	long start, stop;
     	long lastIterTime = 0;
-    	    	
+    	
 		while(System.currentTimeMillis() < deadlineTime - 1.05*lastIterTime && !lambda.isOptimal) {
 			start = System.currentTimeMillis();
     		
