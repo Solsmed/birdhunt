@@ -1,10 +1,5 @@
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 /**
@@ -37,14 +32,12 @@ public class testrunner {
 		PrintStream newOut = new PrintStream(baos);
 		System.setOut(newOut);
 
-		Client c;
 		String tmp;
 		int wins = 0;
 		
 		for(int i=0;i<games;i++){
-			c = new Client();
 			String [] str = {"dd2380.csc.kth.se",port,"STANDALONE","practice"};
-			c.main(str);
+			Client.main(str);
 			System.setOut(originalOut);
 			tmp = baos.toString();
 			if(tmp.contains("good estimation")){

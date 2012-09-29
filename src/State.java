@@ -1,5 +1,3 @@
-import java.util.Arrays;
-
 ///represents the game state
 public class State {
 

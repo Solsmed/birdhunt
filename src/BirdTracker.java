@@ -1,7 +1,5 @@
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 
 
@@ -171,19 +169,6 @@ public class BirdTracker {
 	public void registerDeadBird(int pDuck, int pSpecies) {
 		birdModels[pDuck].species = pSpecies;
 		birdModels[pDuck].speciesCertainty = 1.0;
-	}
-	
-	private String matrixString(double A[][]) {
-		StringBuffer sb = new StringBuffer();
-		
-		for(int b = 0; b < A.length; b++) {
-			for(int c = 0; c < A[b].length; c++) {
-				sb.append(String.format("%.2f ", A[b][c]));
-			}
-			sb.append('\n');
-		}
-		
-		return sb.toString();
 	}
 	
 	private String distancesString() {
