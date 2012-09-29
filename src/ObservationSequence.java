@@ -1,45 +1,49 @@
 import java.util.Vector;
 
 public class ObservationSequence {
-	//protected int[] H_action;
-	//protected int[] V_action;
+	protected int T;
 	protected int[] action;
 	protected int[] movement;
 	
 	private int NUM_KEEP_W = 0;
 	private int NUM_KEEP_E = 0;
 
-	protected int T;
+	Vector<Action> originalSequence;
 	
 	public ObservationSequence(Vector<Action> sequence) {
-		T = sequence.size();
+		originalSequence = sequence;
 		
-		//H_action = new int[T];
-		//V_action = new int[T];
+		T = sequence.size();
 		action = new int[T];
 		movement = new int[T];
 		
+		updateStats();
+		
+		System.out.println(this);		
+	}
+	
+	protected void updateStats() {
 		for(int a = 0; a < T; a++) {
-			Action ca = sequence.get(a);
-			//H_action[a] = ca.GetHAction();
-			//V_action[a] = ca.GetVAction();
+			Action ca = originalSequence.get(a);
 			action[a] = ca.GetHAction() * 3 + ca.GetVAction();
 			movement[a] = ca.GetMovement();
 			
-			//if(H_action[a] == Action.ACTION_KEEPSPEED)
 			if(action[a] / 3 == Action.ACTION_KEEPSPEED)
 				if((movement[a] & Action.MOVE_EAST) != 0)
 					NUM_KEEP_E++;
 				else if ((movement[a] & Action.MOVE_WEST) != 0)
 					NUM_KEEP_W++;
 		}
-		
+	}
+	
+	@Override
+	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		for(int t = 0; t < T; t++) {
-			sb.append(actionToString(sequence.get(t)));
+			sb.append(actionToString(originalSequence.get(t)));
 			sb.append('\n');
 		}
-		System.out.println(sb.toString());		
+		return sb.toString();
 	}
 	
 	public int getMigrationDirection() {

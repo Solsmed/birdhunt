@@ -27,7 +27,7 @@ public class BirdTracker {
 		birdModels = new ModelledObservation[popSize];
 		for(int b = 0; b < popSize; b++) {
 			ObservationSequence seq = new ObservationSequence(pState.GetDuck(b).mSeq);
-			birdModels[b] = new ModelledObservation(seq);
+			birdModels[b] = new ModelledObservation(seq, 4, 9);
 		}
 		
 		if(pState.GetDuck(0).mSeq.size() < 2)
@@ -64,7 +64,7 @@ public class BirdTracker {
 			// classify species
 			for(int b = 0; b < popSize; b++) {
 				for(int c = 0; c < b; c++) {
-					distances[b][c] = distances[c][b] = HMMFunction.matrixNormDistance(birdModels[b].lambda.A, birdModels[c].lambda.A);
+					distances[b][c] = distances[c][b] = MatrixMath.matrixNormDistance(birdModels[b].lambda.A, birdModels[c].lambda.A);
 				}
 			}
 			

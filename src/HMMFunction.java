@@ -62,18 +62,19 @@ public class HMMFunction {
 	}
 	*/
 	
-	public static BirdModel getInitModel(int N, int M) {
-		BirdModel lambda = new BirdModel(N, M);
+	public static BirdModel getInitBirdModel(int N, int M) {
+		BirdModel lambda = new BirdModel(new double[N][N], new double[N][M], new double[N], null);
 		
+		fillWithStochasticNoise(lambda.pi);
 		for(int i = 0; i < N; i++) {
-			noiseRow(lambda.A[i]);
-			noiseRow(lambda.B[i]);
+			fillWithStochasticNoise(lambda.A[i]);
+			fillWithStochasticNoise(lambda.B[i]);
 		}
-		
+			
 		return lambda;
 	}
 	
-	private static void noiseRow(double[] row) {
+	public static void fillWithStochasticNoise(double[] row) {
 		int N = row.length;
 		
 		double Namp = NOISE_AMPLITUDE*(1.0/N);
@@ -90,26 +91,19 @@ public class HMMFunction {
 		Random random = new Random();
 		
 		double[] noiseVector = new double[N];
-		double maxAmplitude = 0;
-				
-		for(int i = 0; i < N; i++) {
-			noiseVector[i] = random.nextDouble() - 0.5;
-			if(Math.abs(noiseVector[i]) > maxAmplitude)
-				maxAmplitude = Math.abs(noiseVector[i]);
-		}
 		
 		double sum = 0;
-		double normalisationFactor = amplitude / maxAmplitude;
+	
 		for(int i = 0; i < N; i++) {
-			noiseVector[i] *= normalisationFactor;
+			noiseVector[i] = amplitude*(random.nextDouble()-0.5);
 			sum += noiseVector[i];
 		}
 		
-		double correction = sum / N;
-		for(int i = 0; i < N; i++) {
-			noiseVector[i] -= correction;
-		}
+		double avg = sum / N;
 		
+		for(int i = 0; i < N; i++)
+			noiseVector[i] -= avg;
+
 		return noiseVector;
 	}
 	
@@ -118,6 +112,11 @@ public class HMMFunction {
 			a[i] += b[i];
 	}
 	
+	/**
+	 * A new BirdModel object that is slightly better than the model described by the arguments.
+	 * 
+	 * @return A new BirdModel object that is slightly better than the model contained in the argument.
+	 */
 	public static BirdModel getRefinedModel(ModelledObservation bird) {
 		BirdModel newLambda = new BirdModel(bird.lambda);
 		
@@ -126,13 +125,13 @@ public class HMMFunction {
 		fillGammas(newLambda.A, newLambda.B, newLambda.pi, bird.O.action, c, bird.gamma, bird.diGamma);
 		
 		// re-estimate pi
-		for(int i = 0; i < bird.N; i++) {
+		for(int i = 0; i < bird.getN(); i++) {
 			newLambda.pi[i] = bird.gamma[0][i];
 		}
 		
 		// re-estimate A
-		for(int i = 0; i < bird.N; i++) {
-			for(int j = 0; j < bird.N; j++) {
+		for(int i = 0; i < bird.getN(); i++) {
+			for(int j = 0; j < bird.getN(); j++) {
 				double numer = 0;
 				double denom = 0;
 				for(int t = 0; t < bird.O.T - 1; t++) {
@@ -144,8 +143,8 @@ public class HMMFunction {
 		}
 		
 		// re-estimate Bh
-		for(int i = 0; i < bird.N; i++) {
-			for(int j = 0; j < bird.M; j++) {
+		for(int i = 0; i < bird.getN(); i++) {
+			for(int j = 0; j < bird.getM(); j++) {
 				double numer = 0;
 				double denom = 0;
 				for(int t = 0; t < bird.O.T - 1; t++) {
@@ -167,100 +166,11 @@ public class HMMFunction {
 		return newLambda;
 	}
 	
-	/*
-	public static BirdModel getRefinedModel(ModelledObservation bird) {
-		BirdModel newLambdaH = new BirdModel(bird.lambda);
-		BirdModel newLambdaV = new BirdModel(bird.lambda);
-		
-		BirdModel newLambda = new BirdModel(bird.lambda);
-
-		double[] H_c = new double[bird.O.T];
-		double[] V_c = new double[bird.O.T];
-		
-		fillGammas(newLambdaH.A, newLambdaH.Bh, newLambdaH.pi, bird.O.H_action, H_c, bird.H_gamma, bird.H_diGamma);
-		fillGammas(newLambdaV.A, newLambdaV.Bv, newLambdaV.pi, bird.O.V_action, V_c, bird.V_gamma, bird.V_diGamma);
-		
-		// re-estimate pi
-		for(int i = 0; i < bird.N; i++) {
-			newLambda.pi[i] = (bird.H_gamma[0][i] + bird.V_gamma[0][i]) / 2;
-		}
-		
-		// re-estimate A
-		for(int i = 0; i < bird.N; i++) {
-			for(int j = 0; j < bird.N; j++) {
-				double numer = 0;
-				double denom = 0;
-				for(int t = 0; t < bird.O.T - 1; t++) {
-					numer += bird.H_diGamma[t][i][j];
-					denom += bird.H_gamma[t][i];
-				}
-				newLambdaH.A[i][j] = numer / denom;
-			}
-		}
-		for(int i = 0; i < bird.N; i++) {
-			for(int j = 0; j < bird.N; j++) {
-				double numer = 0;
-				double denom = 0;
-				for(int t = 0; t < bird.O.T - 1; t++) {
-					numer += bird.V_diGamma[t][i][j];
-					denom += bird.V_gamma[t][i];
-				}
-				newLambdaV.A[i][j] = numer / denom;
-			}
-		}
-		for(int i = 0; i < bird.N; i++) {
-			for(int j = 0; j < bird.N; j++) {
-				newLambda.A[i][j] = (newLambdaH.A[i][j] + newLambdaV.A[i][j]) / 2;				
-			}
-		}
-		
-		// re-estimate Bh
-		for(int i = 0; i < bird.N; i++) {
-			for(int j = 0; j < bird.M; j++) {
-				double numer = 0;
-				double denom = 0;
-				for(int t = 0; t < bird.O.T - 1; t++) {
-					if(bird.O.H_action[t] == j) {
-						numer += bird.H_gamma[t][i];
-					}
-					denom += bird.H_gamma[t][i];
-				}
-				newLambda.Bh[i][j] = numer / denom;
-			}
-		}
-		
-		// re-estimate Bv
-		for(int i = 0; i < bird.N; i++) {
-			for(int j = 0; j < bird.M; j++) {
-				double numer = 0;
-				double denom = 0;
-				for(int t = 0; t < bird.O.T - 1; t++) {
-					if(bird.O.V_action[t] == j) {
-						numer += bird.V_gamma[t][i];
-					}
-					denom += bird.V_gamma[t][i];
-				}
-				newLambda.Bv[i][j] = numer / denom;
-			}
-		}
-		
-    	double logProb = 0;
-    	for(int t = 0; t < bird.O.T; t++) {
-    		logProb += Math.log(H_c[t]) + Math.log(V_c[t]);
-    	}
-    	newLambda.logProb = -logProb;
-
-		return newLambda;
-	}
-	*/
 	// writes to c, gamma and diGamma
 	private static void fillGammas(double[][] A, double[][] B, double[] pi, int[] O, double[] c, double[][] gamma, double[][][] diGamma) {
 		int T = O.length;
 		double[][] alpha = new double[T][A.length];
 		double[][] beta = new double[T][A.length];
-		//double[][] gamma = new double[T][lambda.N];
-		//double[][][] diGamma = new double[T][lambda.N][lambda.N];
-		//double[] c = new double[T];
 		
 		alphaPass(A, B, pi, O, alpha, c);
 		betaPass(A, B, O, beta, c);
@@ -350,20 +260,5 @@ public class HMMFunction {
 				}
 			}
 		}
-	}
-	
-	public static double matrixNormDistance(double[][] A, double[][] B) {
-		// root of element-wise squared distance, normalised to [0..1]
-		int N = A.length;
-		int M = A[0].length;
-		
-		double sumSquaredDist = 0;
-		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < M; j++) {
-				sumSquaredDist += (A[i][j] - B[i][j])*(A[i][j] - B[i][j]);
-			}
-		}
-		
-		return Math.sqrt(sumSquaredDist / (N*M));
 	}
 }

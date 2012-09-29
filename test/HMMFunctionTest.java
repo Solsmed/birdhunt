@@ -7,29 +7,16 @@ import org.junit.Test;
 
 public class HMMFunctionTest {
 
-	BirdModel lambda;
-	BirdModel reality;
-	ObservationSequence O;
-	
 	@Before
 	public void setUp() {
-		int LEN = 500;
-		Vector<Action> act = new Vector<Action>();
-		O = new ObservationSequence(act);
-		
-		BirdModel reality = TestLibrary.getModel_3x5();
-		
-		O.action = SequenceGenerator.generateSequence(reality.A, reality.B, reality.pi, LEN);
-		
-		lambda = HMMFunction.getInitModel(reality.N, reality.M);
-		//lambda.B = {};
+
 	}
 
 	@Test
 	public void testGetInitModel() {
 		for(int N = 1; N < 10; N++) {
 			for(int M = 1; M < 10; M++) {
-				BirdModel lambda = HMMFunction.getInitModel(N, M);
+				BirdModel lambda = HMMFunction.getInitBirdModel(N, M);
 				for(int i = 0; i < N; i++) {
 
 					boolean[] retA = testRow(lambda.A[i], N);
@@ -64,45 +51,104 @@ public class HMMFunctionTest {
 		
 		ret[0] = (1.0/M + HMMFunction.NOISE_AMPLITUDE*1/M >= max);
 		ret[1] = (1.0/M - HMMFunction.NOISE_AMPLITUDE*1/M <= min);
-		ret[2] = (0.9999999999999999 <= rowSum && rowSum <= 1);
+		ret[2] = (0.9999999999999996 <= rowSum && rowSum <= 1.0000000000000004);
 		
 		return ret;
 	}
-
-/*
+	
 	@Test
-	public void testRefineModel() {
-		lambda.B = new double[][]
-				{
-				{0.10, 0.35, 0.35, 0.10, 0.10},
-				{0.20, 0.20, 0.20, 0.20, 0.20},
-				{1,00, 0,00, 0.00, 0.00, 0.00}
-				};
-		
-		Model refined = HMMFunction.refineModel(lambda, O);
-		
-		for(int iter = 0; iter < 2000; iter++) {
-			refined = HMMFunction.refineModel(refined, O);
+	public void testNoiseRow() {
+		double[] uniformVector;
+		for(int len = 1; len < 25; len++) {
+			uniformVector = new double[len];
+			
+			HMMFunction.fillWithStochasticNoise(uniformVector);
+			
+			boolean[] ret = testRow(uniformVector, len);
+			
+			for(int r = 0; r < ret.length; r++) {
+				if(!ret[r]) {
+					System.out.println("fel!");
+					double sum = 0;
+					System.out.println("UniformVector!");
+					for(int i = 0; i < len; i++) {
+						System.out.println("\t" + uniformVector[i]);
+						sum += uniformVector[i];
+					}
+					System.out.println("len = " + len);
+					System.out.println("sum = " + sum);
+				}
+				assertTrue(ret[r]);
+			}
 		}
 		
-		double distRealityArefinedA = HMMFunction.matrixNormDistance(reality.A, refined.A);
-		double distRealityBrefinedB = HMMFunction.matrixNormDistance(reality.B, refined.B);
-		//double distRealityAlambdaA = HMMFunction.matrixNormDistance(reality.A, lambda.A);
-		//double distRealityBlambdaB = HMMFunction.matrixNormDistance(reality.A, lambda.A);
+	}
+
+	@Test
+	public void testRefineModel() {
+		// Reality
+		BirdModel reality = TestLibrary.getModel_3x5();
+
+		// Guess
+		double[][] gA = new double[][] 
+				{
+				{0.8, 0.1, 0.1},
+				{0.1, 0.8, 0.1},
+				{0.6, 0.1, 0.3}
+				};
+		double[][] gB = new double[][] 
+				{
+				{0.05, 0.40, 0.30, 0.05, 0.20},
+				{0.10, 0.10, 0.10, 0.10, 0.60},
+				{0.30, 0.30, 0.10, 0.15, 0.15}
+				};
+		BirdModel guess = HMMFunction.getInitBirdModel(3, 5);
+		guess.A = gA;
+		guess.B = gB;
+		
+		// Observations
+		int LEN = 500;
+		ObservationSequence O = new ObservationSequence(new Vector<Action>());
+		O.T = LEN;
+		O.action = SequenceGenerator.generateSequence(reality.A, reality.B, reality.pi, LEN);
+		System.out.println("O.act.len = " + O.action.length);
+		O.movement = new int[LEN];
+		System.out.println("O.mov.len = " + O.movement.length);
+		
+		System.out.println("O.T = " + O.T);
+		//ModelledObservation modObs = new ModelledObservation(O, 3, 5);
+		ModelledObservation modObs = new ModelledObservation(O, guess);
+		System.out.println("Init: " + modObs.lambda);
+		
+		BirdModel refined = modObs.lambda;
+		
+		int iter = 0;
+		for(iter = 0; iter < 50000; iter++) {
+	    	double oldLogProb = refined.logProb;
+	    	
+	    	//System.out.println("refining...");
+	    	refined = HMMFunction.getRefinedModel(modObs);
+	    	modObs.lambda = refined;
+					
+	    	if(refined.logProb < oldLogProb) {
+	    		refined.isOptimal = true;
+	    		break;
+	    	}
+		}
+		System.out.println("Stopped after " + iter);
+		
+		double distRealityArefinedA = MatrixMath.matrixNormDistance(reality.A, refined.A);
+		double distRealityBrefinedB = MatrixMath.matrixNormDistance(reality.B, refined.B);
 		
 		System.out.println("rA-fA: " + distRealityArefinedA);
 		System.out.println("rB-fB: " + distRealityBrefinedB);
-		//System.out.println("rA-lA: " + distRealityAlambdaA);
-		//System.out.println("rB-lB: " + distRealityBlambdaB);
 		
 		System.out.println("Real " + reality);
-		//System.out.println("Init: " + lambda);
 		System.out.println("Refined: " + refined);
 		
-		//assertTrue(distRealityArefinedA <= 0.15);
-		//assertTrue(distRealityBrefinedB <= 0.15);
+		assertTrue(distRealityArefinedA <= 0.15);
+		assertTrue(distRealityBrefinedB <= 0.15);
 	}
-	*/
 /*
 	@Test
 	public void testFillGammas() {

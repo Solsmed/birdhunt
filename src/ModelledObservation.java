@@ -3,13 +3,9 @@
  *
  */
 public class ModelledObservation {
-	protected static int N = 4;
-	protected static int M = 9;
+	private int N;
+	private int M;
 	
-	//protected double H_gamma[][];
-	//protected double H_diGamma[][][];
-	//protected double V_gamma[][];
-	//protected double V_diGamma[][][];
 	protected double gamma[][];
 	protected double diGamma[][][];
     
@@ -22,7 +18,7 @@ public class ModelledObservation {
 	
 	double lastProbability;
 	
-    public static final String[] labels = new String[] {"Mi", "Qu", "Pa", "FD"};
+    //public static final String[] labels = new String[] {"Mi", "Qu", "Pa", "FD"};
     
     private static final double[][] BinitH = new double[][]
     	//	  K     A      S
@@ -39,9 +35,12 @@ public class ModelledObservation {
 			 {0.19, 0.80, 0.01}}; // F  
 	
     public static double[][] getJointInitB() {
-    	double[][] jointInitB = new double[BinitH.length][M];
+    	int N = BinitH.length;
+    	int M = BinitH[0].length * BinitV[0].length;
     	
-    	for(int i = 0; i < BinitH.length; i++) {
+    	double[][] jointInitB = new double[N][M];
+    	
+    	for(int i = 0; i < N; i++) {
     		for(int k = 0; k < M; k++) {
     			jointInitB[i][k] = BinitH[i][k / 3] * BinitV[i][k % 3];
     		}
@@ -50,10 +49,38 @@ public class ModelledObservation {
     	return jointInitB;
     }
 	
-	public ModelledObservation(ObservationSequence O) {
-		this.lambda = HMMFunction.getInitModel(N, M);//getLabelledModel(O);
+    /**
+     * Creates a ModelledObservation of O and guess. A/B/pi in guess will only be used if A/B/pi is null respectively.
+     * 
+     * @param O
+     * @param guess
+     */
+    public ModelledObservation(ObservationSequence O, BirdModel guess) {
+    	this(O, guess.N, guess.M);
+    	
+    	if(guess != null) {
+    		if(guess.A != null)
+    			this.lambda.A = guess.A;
+    		if(guess.B != null)
+    			this.lambda.B = guess.B;
+    		if(guess.pi != null)
+    			this.lambda.pi = guess.pi;
+    	}
+    	
+    	N = guess.N;
+    	M = guess.M;
+    }
+    
+    /**
+     * Creates a ModelledObservation of O using standard initialisation.
+     * 
+     * @param O
+     */
+	public ModelledObservation(ObservationSequence O, int N, int M) {
+		this.lambda = HMMFunction.getInitBirdModel(N, M);
 		
-		this.lambda.B = getJointInitB();
+		this.N = N;
+		this.M = M;
 		
 		setObservation(O);
 	}
@@ -102,6 +129,7 @@ public class ModelledObservation {
 		lastProbability = maxAction * maxState;
 		return new Action(birdNumber, action / 3, action % 3, getLastMovement());
 	}
+	
 	/*
 	public Action predictDiscreetAction() {
 		double[] HstateT = getProbStateT(lambda.A, H_diGamma);
@@ -180,6 +208,7 @@ public class ModelledObservation {
 		return new Action(birdNumber, maxIndexH, maxIndexV, getLastMovement());
 	}
 	*/
+	
 	public Action predictFuzzyAction() {
 		double[] stateT = getProbStateT(lambda.A, diGamma);
 		
@@ -209,25 +238,18 @@ public class ModelledObservation {
 	// return fuzzy state vector for time T
 	private double[] getProbStateT(double[][] A, double[][][] diGamma) {
 		// calculate gamma[T-1]
-		double[] predictedHGamma = new double[N];
+		double[] predictedGamma = new double[N];
 		for(int j = 0; j < N; j++) {
 			double jProb = 0;
 			for(int i = 0; i < N; i++) {
 				jProb += diGamma[O.T-2][i][j];
 			}
-			predictedHGamma[j] = jProb;
+			predictedGamma[j] = jProb;
 		}
 		
-		// Calculate prability-state vector at T, by doing [[A]]*[predictedHGamma]
-		double[] stateT = new double[N];
-		for(int i = 0; i < N; i++) {
-			double sum = 0;
-			for(int j = 0; j < N; j++) {
-				sum += A[i][j] * predictedHGamma[j];
-			}
-			stateT[i] = sum;
-		}
-		
+		// Calculate prability-state vector at T, by doing [predictedHGamma]*[[A]]
+		double[] stateT = MatrixMath.multi(predictedGamma, A);
+			
 		return stateT;
 	}
 	
@@ -262,4 +284,8 @@ public class ModelledObservation {
 				
 		return lambda.isOptimal;
 	}
+	
+	public int getN() { return N; }
+	
+	public int getM() { return M; }
 }
