@@ -1,5 +1,3 @@
-/*
-
 import static org.junit.Assert.*;
 
 import java.util.Vector;
@@ -9,52 +7,68 @@ import org.junit.Test;
 
 public class HMMFunctionTest {
 
-	Model lambda;
-	Model reality;
+	BirdModel lambda;
+	BirdModel reality;
 	ObservationSequence O;
-	
-	double[][] A = new double[][]
-			{{0.80, 0.05, 0.15},
-			 {0.05, 0.90, 0.05},
-			 {0.60, 0.10, 0.30}
-			};
-	double[][] B = new double[][]
-			{{0.00, 0.50, 0.50, 0.00, 0.00},
-			 {0.10, 0.10, 0.10, 0.35, 0.35},
-			 {1,00, 0.00, 0.00, 0.00, 0.00}
-			};
-	
-	double[] pi = {1.0, 0.00, 0.00};
 	
 	@Before
 	public void setUp() {
 		int LEN = 500;
 		Vector<Action> act = new Vector<Action>();
-		O = new ObservationSequence(act, true);
-		O.action = SequenceGenerator.generateSequence(A, B, pi, LEN);
-		O.T = LEN;
-		int N = 3;
-		int T = O.T;
-		O.N = N;
-		O.M = 5;
+		O = new ObservationSequence(act);
 		
-		O.alpha = new double[T][N];
-		O.beta = new double[T][N];
-		O.c = new double[T];
-		O.gamma = new double[T][N];
-		O.diGamma = new double[T][N][N];
+		BirdModel reality = TestLibrary.getModel_3x5();
 		
-		lambda = HMMFunction.getInitModel(3, 5);
+		O.action = SequenceGenerator.generateSequence(reality.A, reality.B, reality.pi, LEN);
+		
+		lambda = HMMFunction.getInitModel(reality.N, reality.M);
 		//lambda.B = {};
-		reality = new Model(A, B, pi);
 	}
-	*/	
-	/*
+
 	@Test
 	public void testGetInitModel() {
-		fail("Not yet implemented");
+		for(int N = 1; N < 10; N++) {
+			for(int M = 1; M < 10; M++) {
+				BirdModel lambda = HMMFunction.getInitModel(N, M);
+				for(int i = 0; i < N; i++) {
+
+					boolean[] retA = testRow(lambda.A[i], N);
+					boolean[] retB = testRow(lambda.B[i], M);
+				
+					for(int r = 0; r < retA.length; r++) {
+						if(!retA[r] || !retB[r]) {
+							System.out.println("fel!");
+						}
+						assertTrue(retA[r]);
+						assertTrue(retB[r]);
+					}
+				}
+			}
+		}
 	}
-*/
+	
+	private boolean[] testRow(double[] B, int M) {
+		boolean[] ret = new boolean[3];
+		
+		double rowSum = 0;
+		double min = 1.0;
+		double max = 0.0;
+		
+		for(int j = 0; j < M; j++) {
+			rowSum += B[j];
+			if(B[j] < min)
+				min = B[j];
+			if(B[j] > max)
+				max = B[j];				
+		}
+		
+		ret[0] = (1.0/M + HMMFunction.NOISE_AMPLITUDE*1/M >= max);
+		ret[1] = (1.0/M - HMMFunction.NOISE_AMPLITUDE*1/M <= min);
+		ret[2] = (0.9999999999999999 <= rowSum && rowSum <= 1);
+		
+		return ret;
+	}
+
 /*
 	@Test
 	public void testRefineModel() {
@@ -110,6 +124,4 @@ public class HMMFunctionTest {
 		fail("Not yet implemented");
 	}
 	*/
-/*
 }
-*/

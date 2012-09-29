@@ -1,9 +1,10 @@
-
-
 import java.util.Arrays;
 import java.util.Random;
 
 public class HMMFunction {
+	public static final double NOISE_AMPLITUDE = 0.15;
+	
+	/*
 	public static ModelledObservation getLabelledModelledObservation(String[] labels, double[][] Binit, ObservationSequence O) {
 		// Initialise
 		int BigN = Binit.length;
@@ -24,8 +25,6 @@ public class HMMFunction {
 			m[p].lambda.stateLabels = new String[N];
 			for(int i = 0; i < BigN; i++) {
 				if(i != notIndex) {
-					//System.arraycopy(BinitH[i], 0, m[p].lambda.Bh[mIndex], 0, M);
-					//System.arraycopy(BinitV[i], 0, m[p].lambda.Bv[mIndex], 0, M);
 					System.arraycopy(Binit[i], 0, m[p].lambda.B[mIndex], 0, M);
 					m[p].lambda.stateLabels[mIndex] = labels[i];
 					mIndex++;
@@ -61,37 +60,30 @@ public class HMMFunction {
 		
 		return m[mostProbableModelIndex];
 	}
+	*/
 	
 	public static BirdModel getInitModel(int N, int M) {
 		BirdModel lambda = new BirdModel(N, M);
 		
-		double Namp = 0.15*(1.0/N);
-		double Mamp = 0.15*(1.0/M);
-		
 		for(int i = 0; i < N; i++) {
-			Arrays.fill(lambda.A[i], 1.0/N);
-			//Arrays.fill(lambda.Bh[i], 1.0/M);
-			//Arrays.fill(lambda.Bv[i], 1.0/M);
-			Arrays.fill(lambda.B[i], 1.0/M);
-		}
-		
-		Arrays.fill(lambda.pi, 1.0/N);
-		
-		double[] piNoise = getNoiseVector(N, Namp);
-		vectorAdd(lambda.pi, piNoise);
-		
-		for(int i = 0; i < N; i++) {
-			double[] Anoise = getNoiseVector(N, Namp);
-			//double[] Bhnoise = getNoiseVector(M, Mamp);
-			//double[] Bvnoise = getNoiseVector(M, Mamp);
-			double[] Bnoise = getNoiseVector(M, Mamp);
-			vectorAdd(lambda.A[i], Anoise);
-			//vectorAdd(lambda.Bh[i], Bhnoise);
-			//vectorAdd(lambda.Bv[i], Bvnoise);
-			vectorAdd(lambda.B[i], Bnoise);
+			noiseRow(lambda.A[i]);
+			noiseRow(lambda.B[i]);
 		}
 		
 		return lambda;
+	}
+	
+	private static void noiseRow(double[] row) {
+		int N = row.length;
+		
+		double Namp = NOISE_AMPLITUDE*(1.0/N);
+		
+		for(int i = 0; i < N; i++) {
+			Arrays.fill(row, 1.0/N);
+		}
+		
+		double[] noise = getNoiseVector(N, Namp);
+		vectorAdd(row, noise);
 	}
 	
 	private static double[] getNoiseVector(int N, double amplitude) {
