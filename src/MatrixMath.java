@@ -11,7 +11,8 @@ public class MatrixMath {
 	
 	private static double[][] make2D(double[] u) {
 		double[][] u2D = new double[1][u.length];
-		System.arraycopy(u, 0, u2D[0], 0, u.length);
+		//System.arraycopy(u, 0, u2D[0], 0, u.length);
+		u2D[0] = u;
 		return u2D;
 	}
 	
@@ -38,6 +39,26 @@ public class MatrixMath {
 		}
 		
 		return c;
+	}
+	
+	public static double maxValue(double[] a) {
+		return maxValue(make2D(a));
+	}
+	
+	public static double maxValue(double[][] a) {
+		int N = a.length;
+		int M = a[0].length;
+		
+		double maxValue = Double.NEGATIVE_INFINITY;
+		
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < N; j++) {
+				if(a[i][j] > maxValue)
+					maxValue = a[i][j];
+			}
+		}
+		
+		return maxValue;
 	}
 	
 	public static double[][] transpose(double[][] a) {

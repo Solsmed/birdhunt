@@ -84,72 +84,13 @@ public class HMMFunctionTest {
 		
 	}
 
+	/*
 	@Test
 	public void testRefineModel() {
-		// Reality
-		BirdModel reality = TestLibrary.getModel_3x5();
-
-		// Guess
-		double[][] gA = new double[][] 
-				{
-				{0.8, 0.1, 0.1},
-				{0.1, 0.8, 0.1},
-				{0.6, 0.1, 0.3}
-				};
-		double[][] gB = new double[][] 
-				{
-				{0.05, 0.40, 0.30, 0.05, 0.20},
-				{0.10, 0.10, 0.10, 0.10, 0.60},
-				{0.30, 0.30, 0.10, 0.15, 0.15}
-				};
-		BirdModel guess = HMMFunction.getInitBirdModel(3, 5);
-		guess.A = gA;
-		guess.B = gB;
 		
-		// Observations
-		int LEN = 500;
-		ObservationSequence O = new ObservationSequence(new Vector<Action>());
-		O.T = LEN;
-		O.action = SequenceGenerator.generateSequence(reality.A, reality.B, reality.pi, LEN);
-		System.out.println("O.act.len = " + O.action.length);
-		O.movement = new int[LEN];
-		System.out.println("O.mov.len = " + O.movement.length);
-		
-		System.out.println("O.T = " + O.T);
-		//ModelledObservation modObs = new ModelledObservation(O, 3, 5);
-		ModelledObservation modObs = new ModelledObservation(O, guess);
-		System.out.println("Init: " + modObs.lambda);
-		
-		BirdModel refined = modObs.lambda;
-		
-		int iter = 0;
-		for(iter = 0; iter < 50000; iter++) {
-	    	double oldLogProb = refined.logProb;
-	    	
-	    	//System.out.println("refining...");
-	    	refined = HMMFunction.getRefinedModel(modObs);
-	    	modObs.lambda = refined;
-					
-	    	if(refined.logProb < oldLogProb) {
-	    		refined.isOptimal = true;
-	    		break;
-	    	}
-		}
-		System.out.println("Stopped after " + iter);
-		
-		double distRealityArefinedA = MatrixMath.matrixNormDistance(reality.A, refined.A);
-		double distRealityBrefinedB = MatrixMath.matrixNormDistance(reality.B, refined.B);
-		
-		System.out.println("rA-fA: " + distRealityArefinedA);
-		System.out.println("rB-fB: " + distRealityBrefinedB);
-		
-		System.out.println("Real " + reality);
-		System.out.println("Refined: " + refined);
-		
-		assertTrue(distRealityArefinedA <= 0.15);
-		assertTrue(distRealityBrefinedB <= 0.15);
 	}
-/*
+	 */
+	/*
 	@Test
 	public void testFillGammas() {
 		fail("Not yet implemented");

@@ -113,6 +113,58 @@ public class HMMFunction {
 	}
 	
 	/**
+	 * Returns the dynamic-programming optimal path
+	 */
+	public static int[] getDPOptimalPath(ModelledObservation bird) {
+		BirdModel l = bird.lambda;
+		int[] O = bird.O.action;
+		int T = bird.O.T;
+		int N = l.N; 
+		
+		int[][] backpointer = new int[T][N];
+			
+		double[][] deltaHat = new double[T][N];
+		
+		for(int i = 0; i < N; i++) {
+			deltaHat[0][i] = Math.log(l.pi[i]) + Math.log(l.B[i][O[0]]);
+			backpointer[0][i] = -1;
+		}
+		
+		for(int t = 1; t < bird.O.T; t++) {
+			for(int i = 0; i < N; i++) {
+//				deltaHat[t][i] = MatrixMath.maxValue(deltaHat[t-1] + Math.log(bird.lambda.A[j][i]));
+				int maxStateIndex = -1;
+				double maxProb = Double.NEGATIVE_INFINITY;
+				for(int j = 0; j < N; j++) {
+					double expr = deltaHat[t-1][j] + Math.log(l.A[j][i]) + Math.log(l.B[i][O[t]]);
+					if(expr > maxProb) {
+						maxProb = expr;
+						maxStateIndex = j;
+					}
+				}
+				deltaHat[t][i] = maxProb;
+				backpointer[t][i] = maxStateIndex;
+			}
+		}
+		
+		int[] path = new int[T];
+		
+		int maxStateIndex = -1;
+		double maxProb = Double.NEGATIVE_INFINITY;
+		for(int j = 0; j < N; j++) {
+			if(deltaHat[T-1][j] > maxProb) {
+				maxProb = deltaHat[T-1][j];
+				maxStateIndex = j;
+			}
+		}
+		path[T-1] = maxStateIndex;
+		for(int t = T-1; t >= 0; t--)
+			path[t] = backpointer[t];
+		
+		return path;
+	}
+	
+	/**
 	 * A new BirdModel object that is slightly better than the model described by the arguments.
 	 * 
 	 * @return A new BirdModel object that is slightly better than the model contained in the argument.

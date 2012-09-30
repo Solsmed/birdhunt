@@ -46,7 +46,8 @@ public class ModelledObservationTest {
 		// whole
 		O = new ObservationSequence(new Vector<Action>());
 		O.T = LEN;
-		O.action = SequenceGenerator.generateSequence(reality.A, reality.B, reality.pi, LEN);
+		int[][] seq = SequenceGenerator.generateSequence(reality.A, reality.B, reality.pi, LEN);
+		O.action = seq[1];
 		O.movement = new int[LEN];
 		// partial
 		Opartial = new ObservationSequence(new Vector<Action>());
