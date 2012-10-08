@@ -29,9 +29,8 @@ public class Player {
     Action Shoot(State pState,Deadline pDue)
     {
     	turnKeeper++;
-    	System.out.println(turnKeeper + ": Shoot? Where!?");
 
-        /*
+    	/*
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
          */ 

@@ -16,7 +16,7 @@ public class HMMFunctionTest {
 	public void testGetInitModel() {
 		for(int N = 1; N < 10; N++) {
 			for(int M = 1; M < 10; M++) {
-				BirdModel lambda = HMMFunction.getInitBirdModel(N, M);
+				MarkovModel lambda = HMMFunction.getInitBirdModel(N, M);
 				for(int i = 0; i < N; i++) {
 
 					boolean[] retA = testRow(lambda.A[i], N);
@@ -62,7 +62,7 @@ public class HMMFunctionTest {
 		for(int len = 1; len < 25; len++) {
 			uniformVector = new double[len];
 			
-			HMMFunction.fillWithStochasticNoise(uniformVector);
+			HMMFunction.fillWithStochasticNoise(uniformVector, HMMFunction.NOISE_AMPLITUDE);
 			
 			boolean[] ret = testRow(uniformVector, len);
 			

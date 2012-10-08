@@ -65,18 +65,18 @@ public class MatrixMath {
 		int N = a.length;
 		int M = a[0].length;
 		
-		double[][] at = new double[a.length][a[0].length];
+		double[][] at = new double[a[0].length][a.length];
 		
 		for(int i = 0; i < N; i++) {
 			for(int j = 0; j < M; j++) {
-				at[i][j] = a[j][i];
+				at[j][i] = a[i][j];
 			}
 		}
 		
 		return at;
 	}
 	
-	public static double matrixNormDistance(double[][] A, double[][] B) {
+	public static double matrixNorm2(double[][] A, double[][] B) {
 		// root of element-wise squared distance, normalised to [0..1]
 		int N = A.length;
 		int M = A[0].length;
@@ -89,6 +89,22 @@ public class MatrixMath {
 		}
 		
 		return Math.sqrt(sumSquaredDist / (N*M));
+	}
+	
+	public static double matrixNormInf(double[][] A, double[][] B) {
+		// root of element-wise squared distance, normalised to [0..1]
+		int N = A.length;
+		int M = A[0].length;
+		
+		double max = 0;
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < M; j++) {
+				double norm = Math.abs(A[i][j] - B[i][j]);
+				if(norm > max)
+					max = norm;
+			}
+		}
+		return max;
 	}
 	
 	public static boolean equal(double[] a, double[][] b) {
@@ -140,5 +156,46 @@ public class MatrixMath {
 		sb.append("]");
 		
 		return sb.toString();
+	}
+	
+	public static double[][] copy(double[][] a) {
+		double[][] c = new double[a.length][];
+		
+		for(int i = 0; i < a.length; i++) {
+			c[i] = new double[a[i].length];
+			System.arraycopy(a[i], 0, c[i], 0, a[i].length);
+		}
+		
+		return c;
+	}
+	
+	public static double[] rowSums(double[][] a) {
+		double[] ret = new double[a.length];
+		for(int i = 0; i < a.length; i++) {
+			ret[i] = rowSum(a[i]); 
+		}
+		return ret;
+	}
+	
+	public static double rowSum(double[] a) {
+		double sum = 0;
+		for(int i = 0; i < a.length; i++) {
+			sum += a[i];
+		}
+		return sum;
+	}
+	
+	public static double[][] makeRowStochastic(double[][] a) {
+		double[] sums = rowSums(a);
+		double[][] ret = new double[a.length][];
+		
+		for(int i = 0; i < a.length; i++) {
+			ret[i] = new double[a[i].length];
+			for(int j = 0; j < a[i].length; j++) {
+				ret[i][j] = a[i][j] / sums[i];
+			}
+		}
+		
+		return ret;
 	}
 }

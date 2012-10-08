@@ -2,10 +2,9 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class HMMFunction {
-	public static final double NOISE_AMPLITUDE = 0.15;
+	public static final double NOISE_AMPLITUDE = 0.00;
 	
 	/*
-	public static ModelledObservation getLabelledModelledObservation(String[] labels, double[][] Binit, ObservationSequence O) {
 		// Initialise
 		int BigN = Binit.length;
 		int N = ModelledObservation.N;
@@ -62,22 +61,26 @@ public class HMMFunction {
 	}
 	*/
 	
-	public static BirdModel getInitBirdModel(int N, int M) {
-		BirdModel lambda = new BirdModel(new double[N][N], new double[N][M], new double[N], null);
+	public static MarkovModel getInitBirdModel(int N, int M) {
+		return getInitBirdModel(N, M, NOISE_AMPLITUDE);
+	}
+	
+	public static MarkovModel getInitBirdModel(int N, int M, double relativeAmplitude) {
+		MarkovModel lambda = new MarkovModel(new double[N][N], new double[N][M], new double[N], null);
 		
-		fillWithStochasticNoise(lambda.pi);
+		fillWithStochasticNoise(lambda.pi, relativeAmplitude);
 		for(int i = 0; i < N; i++) {
-			fillWithStochasticNoise(lambda.A[i]);
-			fillWithStochasticNoise(lambda.B[i]);
+			fillWithStochasticNoise(lambda.A[i], relativeAmplitude);
+			fillWithStochasticNoise(lambda.B[i], relativeAmplitude);
 		}
 			
 		return lambda;
 	}
 	
-	public static void fillWithStochasticNoise(double[] row) {
+	public static void fillWithStochasticNoise(double[] row, double relativeAmplitude) {
 		int N = row.length;
 		
-		double Namp = NOISE_AMPLITUDE*(1.0/N);
+		double Namp = relativeAmplitude*(1.0/N);
 		
 		for(int i = 0; i < N; i++) {
 			Arrays.fill(row, 1.0/N);
@@ -115,8 +118,8 @@ public class HMMFunction {
 	/**
 	 * Returns the dynamic-programming optimal path
 	 */
-	public static int[] getDPOptimalPath(ModelledObservation bird) {
-		BirdModel l = bird.lambda;
+	public static int[] getDPOptimalPath(BirdModel bird) {
+		MarkovModel l = bird.lambda;
 		int[] O = bird.O.action;
 		int T = bird.O.T;
 		int N = l.N; 
@@ -159,7 +162,7 @@ public class HMMFunction {
 		}
 		path[T-1] = maxStateIndex;
 		for(int t = T-1; t >= 0; t--)
-			path[t] = backpointer[t];
+			path[t] = backpointer[t][t];
 		
 		return path;
 	}
@@ -169,12 +172,12 @@ public class HMMFunction {
 	 * 
 	 * @return A new BirdModel object that is slightly better than the model contained in the argument.
 	 */
-	public static BirdModel getRefinedModel(ModelledObservation bird) {
-		BirdModel newLambda = new BirdModel(bird.lambda);
+	public static MarkovModel getRefinedModel(BirdModel bird) {
+		MarkovModel newLambda = new MarkovModel(bird.lambda);
 		
-		double[] c = new double[bird.O.T];
+		/*double[] */bird.c = new double[bird.O.T];
 		
-		fillGammas(newLambda.A, newLambda.B, newLambda.pi, bird.O.action, c, bird.gamma, bird.diGamma);
+		fillGammas(newLambda.A, newLambda.B, newLambda.pi, bird.O.action, bird.c, bird.alpha, bird.gamma, bird.diGamma);
 		
 		// re-estimate pi
 		for(int i = 0; i < bird.getN(); i++) {
@@ -211,7 +214,7 @@ public class HMMFunction {
 		
     	double logProb = 0;
     	for(int t = 0; t < bird.O.T; t++) {
-    		logProb += Math.log(c[t]);
+    		logProb += Math.log(bird.c[t]);
     	}
     	newLambda.logProb = -logProb;
 
@@ -219,19 +222,21 @@ public class HMMFunction {
 	}
 	
 	// writes to c, gamma and diGamma
-	private static void fillGammas(double[][] A, double[][] B, double[] pi, int[] O, double[] c, double[][] gamma, double[][][] diGamma) {
+	private static void fillGammas(double[][] A, double[][] B, double[] pi, int[] O, double[] c, double[][] alpha, double[][] gamma, double[][][] diGamma) {
 		int T = O.length;
-		double[][] alpha = new double[T][A.length];
+		//double[][] alpha = new double[T][A.length];
 		double[][] beta = new double[T][A.length];
 		
+		// writes to alpha[][] and c[]
 		alphaPass(A, B, pi, O, alpha, c);
+		// writes to beta[][]
 		betaPass(A, B, O, beta, c);
-		
+		// writes to gamma and diGamma
 		diGamma(A, B, O, alpha, beta, gamma, diGamma);
 	}
 	
 	// writes to alpha[][] and c[]
-	private static void alphaPass(double[][] A, double[][] B, double[] pi, int[] O, double[][] alpha, double[] c) {	
+	protected static void alphaPass(double[][] A, double[][] B, double[] pi, int[] O, double[][] alpha, double[] c) {	
 		int T = O.length;
 		
 		// compute alpha[0][i]
@@ -268,7 +273,7 @@ public class HMMFunction {
 	}
 	
 	// writes to beta[][]
-	private static void betaPass(double[][] A, double[][] B, int[] O, double[][] beta, double[] c) {
+	protected static void betaPass(double[][] A, double[][] B, int[] O, double[][] beta, double[] c) {
 		int T = O.length;
 		
 		// Let beta[T-1][i] = 1 scaled by c[T-1]

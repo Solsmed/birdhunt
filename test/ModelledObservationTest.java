@@ -7,11 +7,13 @@ import org.junit.Test;
 
 
 public class ModelledObservationTest {
-	BirdModel reality;
-	BirdModel guess;
+	BirdModel xavi;
+	MarkovModel xaviFacit;
+	MarkovModel reality;
+	MarkovModel guess;
 	ObservationSequence O;
 	ObservationSequence Opartial;
-	ModelledObservation modObs;
+	BirdModel modObs;
 	int LEN = 501;
 	int LENpartial = 500;
 
@@ -19,8 +21,7 @@ public class ModelledObservationTest {
 		System.out.println("-------------------------------------------");
 		// Reality
 		reality = TestLibrary.getModel_3x5();
-		System.out.println("Real " + reality);
-		
+		System.out.println("Real (my)" + reality);
 	}
 	
 	@Before
@@ -56,9 +57,9 @@ public class ModelledObservationTest {
 		System.arraycopy(O.action, 0, Opartial.action, 0, LENpartial);
 		Opartial.movement = new int[LENpartial];
 
-		modObs = new ModelledObservation(Opartial, guess);
+		modObs = new BirdModel(Opartial, guess);
 		
-		BirdModel refined = modObs.lambda;
+		MarkovModel refined = modObs.lambda;
 		
 		int iter = 0;
 		for(iter = 0; iter < 50000; iter++) {
@@ -74,18 +75,19 @@ public class ModelledObservationTest {
 		}
 		System.out.println("Stopped after " + iter);
 		
-		double distRealityArefinedA = MatrixMath.matrixNormDistance(reality.A, refined.A);
-		double distRealityBrefinedB = MatrixMath.matrixNormDistance(reality.B, refined.B);
+		double distRealityArefinedA = MatrixMath.matrixNorm2(reality.A, refined.A);
+		double distRealityBrefinedB = MatrixMath.matrixNorm2(reality.B, refined.B);
 		
-		System.out.println("rA-fA: " + distRealityArefinedA);
-		System.out.println("rB-fB: " + distRealityBrefinedB);
+		//System.out.println("rA-fA: " + distRealityArefinedA);
+		//System.out.println("rB-fB: " + distRealityBrefinedB);
 		
 		System.out.println("Refined: " + refined);
 	}
-
+/*
 	@Test
-	public void testPredictDiscreetAction() {
-		String prediction = ObservationSequence.actionToString(modObs.predictDiscreetAction());
+	public void testPredictDiscreteAction() {
+		System.out.println("*\n*Test Predict Discrete Action\n*");
+		String prediction = ObservationSequence.actionToString(modObs.predictDiscreteAction());
 		
 		int t = LENpartial;
 		
@@ -108,10 +110,12 @@ public class ModelledObservationTest {
 		System.out.println(prediction);
 		System.out.println(correct);
 	}
-
+*/
+/*
 	@Test
 	public void testPredictFuzzyAction() {
-		String prediction = ObservationSequence.actionToString(modObs.predictDiscreetAction());
+		System.out.println("*\n*Test Predict Fuzzy Action\n*");
+		String prediction = ObservationSequence.actionToString(modObs.predictFuzzyAction());
 		
 		int t = LENpartial;
 		
@@ -134,10 +138,117 @@ public class ModelledObservationTest {
 		System.out.println(prediction);
 		System.out.println(correct);
 	}
-
+*/
 	@Test
 	public void testRefineModel() {
-		fail("Not yet implemented");
+		System.out.println("*\n*Test Refine Model\n*");
+		
+		System.out.println("=== Flat A, Real B, Full O ===");
+		xavi = TestLibrary.getModelledObservation_3x9();
+		MarkovModel xaviFacit = new MarkovModel(xavi.lambda);
+		xavi.lambda.A = HMMFunction.getInitBirdModel(3, 9).A;
+		
+		long start = System.currentTimeMillis();
+		boolean done = xavi.refineModel(start + 1000);
+		System.out.println("Refinement performed in " + (System.currentTimeMillis() - start) + " ms.");
+		System.out.println("Refinement done: " + done);
+		double distArealA = MatrixMath.matrixNorm2(xavi.lambda.A, xaviFacit.A);
+		double distBrealB = MatrixMath.matrixNorm2(xavi.lambda.B, xaviFacit.B);
+		
+		System.out.println(distArealA);
+		System.out.println(distBrealB);
+		
+		assertTrue(distArealA <= 0.01); // 0.0017
+		assertTrue(distBrealB <= 0.01); // 0.0026
+		
+		
+		System.out.println();
+		System.out.println("=== Flat A, Ballpark B, Partial O ===");
+		xavi = TestLibrary.getModelledObservation_3x9(100);
+		xavi.lambda.A = HMMFunction.getInitBirdModel(3, 9).A;
+		xavi.lambda.pi = HMMFunction.getInitBirdModel(3, 9).pi;
+		double[][] ballparkB = new double[][]
+				{
+			{0.51, 0.20, 0.05, 0.10, 0.09, 0.00, 0.00, 0.00, 0.05},
+			{0.05, 0.00, 0.00, 0.00, 0.00, 0.00, 0.70, 0.25, 0.00},
+			{0.10, 0.00, 0.33, 0.19, 0.00, 0.33, 0.00, 0.00, 0.05}
+				};
+		xavi.lambda.B = ballparkB;
+		start = System.currentTimeMillis();
+		done = xavi.refineModel(start + 1000);
+		System.out.println("Refinement performed in " + (System.currentTimeMillis() - start) + " ms.");
+		System.out.println("Refinement done: " + done);
+		distArealA = MatrixMath.matrixNorm2(xavi.lambda.A, xaviFacit.A);
+		distBrealB = MatrixMath.matrixNorm2(xavi.lambda.B, xaviFacit.B);
+		
+		System.out.println(distArealA);
+		System.out.println(distBrealB);
+		
+		System.out.println(xavi.lambda);
+		
+		assertTrue(distArealA <= 0.10); // 0.0816
+		assertTrue(distBrealB <= 0.10); // 0.0532
+		
+		
+		
+		System.out.println();
+		System.out.println("=== Ballpark A, Flat B, Partial O ===");
+		xavi = TestLibrary.getModelledObservation_3x9(100);
+		xavi.lambda.B = HMMFunction.getInitBirdModel(3, 9).B;
+		xavi.lambda.pi = HMMFunction.getInitBirdModel(3, 9).pi;
+		double[][] ballparkA = new double[][]
+				{
+			{0.89, 0.06, 0.05},
+			{0.06, 0.88, 0.06},
+			{0.05, 0.06, 0.89},
+				};
+		xavi.lambda.A = ballparkA;
+		start = System.currentTimeMillis();
+		done = xavi.refineModel(start + 1000);
+		System.out.println("Refinement performed in " + (System.currentTimeMillis() - start) + " ms.");
+		System.out.println("Refinement done: " + done);
+		distArealA = MatrixMath.matrixNorm2(xavi.lambda.A, xaviFacit.A);
+		distBrealB = MatrixMath.matrixNorm2(xavi.lambda.B, xaviFacit.B);
+		
+		System.out.println(distArealA);
+		System.out.println(distBrealB);
+		
+		System.out.println(xavi.lambda);
+		
+		//assertTrue(distArealA <= 0.10); // 0.0816
+		//assertTrue(distBrealB <= 0.10); // 0.0532
+		
+		
+		
+		
+		
+		System.out.println();
+		System.out.println("=== Ballpark A, Flat B, Partial O (Matlab remake) ===");
+		xavi = TestLibrary.getModelledObservation_3x9(100);
+		xavi.lambda.B = HMMFunction.getInitBirdModel(3, 9).B;
+		xavi.lambda.pi = HMMFunction.getInitBirdModel(3, 9).pi;
+		ballparkA = new double[][]
+				{
+			{0.89, 0.06, 0.05},
+			{0.06, 0.88, 0.06},
+			{0.05, 0.06, 0.89},
+				};
+		xavi.lambda.A = ballparkA;
+		System.out.println("Go!");
+		start = System.currentTimeMillis();
+		done = xavi.baumWelchTrain(50);
+		System.out.println("Refinement performed in " + (System.currentTimeMillis() - start) + " ms.");
+		System.out.println("Refinement done: " + done);
+		distArealA = MatrixMath.matrixNorm2(xavi.lambda.A, xaviFacit.A);
+		distBrealB = MatrixMath.matrixNorm2(xavi.lambda.B, xaviFacit.B);
+		
+		System.out.println(distArealA);
+		System.out.println(distBrealB);
+		
+		System.out.println(xavi.lambda);
+		
+		assertTrue(distArealA <= 0.10); // 0.0816
+		assertTrue(distBrealB <= 0.10); // 0.0532
 	}
 
 }

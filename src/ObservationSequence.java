@@ -10,6 +10,13 @@ public class ObservationSequence {
 
 	Vector<Action> originalSequence;
 	
+	public ObservationSequence(int[] O) {
+		action = O;
+		movement = new int[T];
+		T = O.length;
+		originalSequence = null;
+	}
+	
 	public ObservationSequence(Vector<Action> sequence) {
 		originalSequence = sequence;
 		
@@ -19,7 +26,7 @@ public class ObservationSequence {
 		
 		updateStats();
 		
-		System.out.println(this);		
+		//System.out.println(this);		
 	}
 	
 	protected void updateStats() {
